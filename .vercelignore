@@ -1,0 +1,6 @@
+# Never upload secrets or the local Python backend to Vercel
+.env
+.venv/
+app/
+__pycache__/
+node_modules/

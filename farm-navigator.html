@@ -1,0 +1,1355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Farm Navigator</title>
+<meta name="description" content="An educational farming strategy game about using NASA Earth data for sustainable decisions.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green-900:#173B2A; --green-800:#1E4D35; --green-700:#23603F; --green-500:#3E9B4F; --green-300:#9FD39A; --green-100:#E4F1DE;
+  --soil-800:#553620; --soil-700:#6B4428; --soil-500:#8C5E3C; --soil-300:#C9A27C;
+  --beige-50:#FFFBF3; --beige-100:#FBF6EC; --beige-200:#F3E8D2; --beige-300:#E6D4B2; --beige-400:#D4BC92;
+  --nasa-900:#0B3D91; --nasa-700:#1552B8; --nasa-500:#1E6FD9; --nasa-100:#E3EEFB;
+  --red-600:#C0392B; --red-100:#FBE4DF; --amber-500:#E09A1B; --amber-100:#FCEFD3; --purple-500:#7A5AA6;
+  --ink:#1D2A22; --muted:#56655A; --white:#fff;
+  --r-lg:22px; --r-md:16px; --r-sm:11px;
+  --chunk:0 4px 0 var(--beige-300);
+  --font-display:"Fredoka","Nunito",system-ui,sans-serif;
+  --font-body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  font-family:var(--font-body); color:var(--ink); background:var(--beige-100);
+  background-image:radial-gradient(var(--beige-200) 1.2px, transparent 1.2px); background-size:22px 22px;
+  min-height:100vh; -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:3px solid var(--nasa-500);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.icon{width:1.2em;height:1.2em;flex:none;display:inline-block;vertical-align:-.2em}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:0;border-radius:14px;padding:12px 18px;font-weight:800;font-size:15px;
+  background:var(--white);color:var(--ink);box-shadow:0 4px 0 var(--beige-400), inset 0 0 0 2px var(--beige-300);
+  transition:transform .08s, box-shadow .08s, background .2s;
+}
+.btn:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--beige-400), inset 0 0 0 2px var(--beige-300)}
+.btn-primary{background:var(--green-500);color:#fff;box-shadow:0 4px 0 var(--green-700)}
+.btn-primary:hover:not(:disabled){background:#46AA58}
+.btn-primary:active:not(:disabled){box-shadow:0 1px 0 var(--green-700)}
+.btn-primary:disabled{background:#A9C7AC;box-shadow:0 4px 0 #8DAE90}
+.btn-nasa{background:var(--nasa-500);color:#fff;box-shadow:0 4px 0 var(--nasa-900)}
+.btn-nasa:active:not(:disabled){box-shadow:0 1px 0 var(--nasa-900)}
+.btn-lg{padding:16px 24px;font-size:17px;border-radius:16px;font-family:var(--font-display);font-weight:600;letter-spacing:.3px}
+.btn-icon{width:46px;height:46px;padding:0;border-radius:14px}
+.btn-ghost{background:transparent;box-shadow:none;color:var(--muted)}
+.btn-ghost:active:not(:disabled){box-shadow:none}
+
+/* ---------- Screens ---------- */
+.screen{display:none}
+.screen.active{display:block}
+.center-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:24px 16px}
+.center-screen.active{display:flex}
+
+/* ---------- Loading / error ---------- */
+.boot{width:min(460px,100%);text-align:center}
+.boot h1{font-size:30px;color:var(--green-900);margin-top:18px}
+.boot p{color:var(--muted);font-size:16px;line-height:1.5;margin:8px 0 0}
+.orbit{position:relative;width:180px;height:180px;margin:0 auto}
+.planet{position:absolute;inset:38px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#7CC6F2 0,#2F86D6 45%,#0B3D91 100%);
+  box-shadow:inset -12px -10px 0 rgba(0,0,0,.18), 0 10px 30px rgba(11,61,145,.25);overflow:hidden}
+.planet::before,.planet::after{content:"";position:absolute;background:#5DB36A;border-radius:48% 52% 60% 40%}
+.planet::before{width:46px;height:34px;left:18px;top:26px;transform:rotate(-18deg)}
+.planet::after{width:30px;height:40px;right:16px;bottom:18px;background:#4E9E5B}
+.orbit-ring{position:absolute;inset:6px;border:2px dashed rgba(30,111,217,.35);border-radius:50%}
+.sat{position:absolute;inset:0;animation:spin 3.2s linear infinite}
+.sat svg{position:absolute;top:-6px;left:50%;margin-left:-20px;width:40px;height:40px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.boot-steps{list-style:none;padding:0;margin:26px 0 0;text-align:left;display:grid;gap:8px}
+.boot-steps li{display:flex;align-items:center;gap:12px;background:#fff;border-radius:14px;padding:11px 14px;box-shadow:var(--chunk);font-weight:700;color:var(--muted);transition:color .3s}
+.boot-steps li .dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--beige-200);color:#fff;flex:none;transition:background .3s}
+.boot-steps li.done{color:var(--ink)}
+.boot-steps li.done .dot{background:var(--green-500)}
+.boot-steps li.now .dot{background:var(--nasa-500);animation:pulse 1s ease-in-out infinite}
+.boot-steps li small{margin-left:auto;font-weight:700;color:var(--nasa-700);font-size:12px;letter-spacing:.3px}
+@keyframes pulse{50%{transform:scale(.82)}}
+.progress{height:14px;border-radius:99px;background:var(--beige-200);overflow:hidden;margin-top:18px;box-shadow:inset 0 2px 0 rgba(0,0,0,.05)}
+.progress>i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--nasa-500),var(--green-500));transition:width .4s}
+
+.err .planet{filter:grayscale(.6) brightness(.9)}
+.err .sat{animation:none;transform:rotate(38deg)}
+.err-link{position:absolute;left:50%;top:14px;width:2px;height:36px;margin-left:30px;border-left:3px dashed var(--red-600);transform:rotate(30deg)}
+.err-badge{position:absolute;right:6px;top:6px;width:42px;height:42px;border-radius:50%;background:var(--red-600);color:#fff;display:grid;place-items:center;box-shadow:0 3px 0 #8E2A1F;font-family:var(--font-display);font-size:24px;font-weight:700}
+.err-code{display:inline-block;margin-top:14px;font-size:13px;font-weight:800;color:var(--red-600);background:var(--red-100);padding:6px 12px;border-radius:99px}
+.boot-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+
+/* ---------- Game layout ---------- */
+.game{
+  display:grid;gap:16px;padding:16px;max-width:1480px;margin:0 auto;min-height:100vh;
+  grid-template-columns:300px minmax(0,1fr) 310px;
+  grid-template-rows:auto 1fr auto;
+  grid-template-areas:"top top top" "left stage right" "bottom bottom bottom";
+}
+.card{background:#fff;border-radius:var(--r-lg);box-shadow:var(--chunk), 0 0 0 2px var(--beige-200)}
+
+/* top bar */
+.topbar{grid-area:top;display:flex;align-items:center;gap:14px;padding:10px 12px 10px 16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:4px}
+.brand-mark{width:44px;height:44px;border-radius:14px;background:var(--green-800);display:grid;place-items:center;box-shadow:0 3px 0 var(--green-900)}
+.brand h1{font-size:21px;color:var(--green-900);line-height:1}
+.brand span{display:block;font-size:11.5px;font-weight:800;color:var(--nasa-700);letter-spacing:.8px;text-transform:uppercase;margin-top:3px}
+.season-pill{display:flex;align-items:center;gap:12px;background:var(--green-900);color:#fff;border-radius:16px;padding:8px 14px 8px 10px}
+.season-emoji{width:36px;height:36px;border-radius:11px;background:rgba(255,255,255,.12);display:grid;place-items:center}
+.season-pill b{font-family:var(--font-display);font-size:18px;font-weight:600;display:block;line-height:1.1}
+.season-pill small{font-size:12px;opacity:.8;font-weight:700}
+.season-dots{display:flex;gap:5px;margin-left:4px}
+.season-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.25)}
+.season-dots i.done{background:var(--green-300)}
+.season-dots i.now{background:#FFD35C;box-shadow:0 0 0 3px rgba(255,211,92,.3)}
+.mission{flex:1;min-width:220px;display:flex;align-items:center;gap:12px;background:var(--amber-100);border-radius:16px;padding:8px 14px;border:2px dashed #EACB86}
+.mission-flag{width:36px;height:36px;border-radius:11px;background:var(--amber-500);color:#fff;display:grid;place-items:center;flex:none}
+.mission small{display:block;font-size:11px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#A26A06}
+.mission b{font-size:15px;font-weight:800;line-height:1.25}
+.top-actions{display:flex;gap:8px;margin-left:auto}
+
+/* side panels */
+.panel{padding:16px;display:flex;flex-direction:column;gap:16px;align-self:start}
+.left{grid-area:left}
+.right{grid-area:right}
+.panel-title{display:flex;align-items:center;gap:10px}
+.panel-title .badge-ic{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;color:#fff;flex:none}
+.panel-title h2{font-size:19px}
+.panel-title p{margin:0;font-size:12.5px;color:var(--muted);font-weight:700}
+.group-label{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:0 0 8px;display:flex;justify-content:space-between;align-items:center}
+.group-label em{font-style:normal;color:var(--nasa-700);text-transform:none;letter-spacing:0;font-size:12px}
+
+.crop-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.crop{border:0;background:var(--beige-50);border-radius:14px;padding:10px 8px 9px;text-align:center;box-shadow:inset 0 0 0 2px var(--beige-200), 0 3px 0 var(--beige-200);transition:box-shadow .15s, background .15s, transform .1s;position:relative}
+.crop:hover:not(:disabled){background:#fff}
+.crop[aria-pressed="true"]{background:var(--green-100);box-shadow:inset 0 0 0 3px var(--green-500), 0 3px 0 var(--green-700)}
+.crop[aria-pressed="true"]::after{content:"";position:absolute;top:7px;right:7px;width:18px;height:18px;border-radius:50%;background:var(--green-500) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/12px no-repeat}
+.crop svg.art{width:46px;height:46px;display:block;margin:0 auto 2px}
+.crop b{display:block;font-size:14.5px;font-weight:800}
+.crop .meta{display:flex;justify-content:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--muted);margin-top:3px;align-items:center}
+.drops{display:inline-flex;gap:1px;color:var(--nasa-500)}
+.drops .off{color:var(--beige-300)}
+.crop .tag{display:inline-block;margin-top:5px;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:99px;background:var(--beige-200);color:var(--soil-700)}
+.crop .tag.tol{background:#FFF1CC;color:#8A5A00}
+.crop .tag.leg{background:#E2F4DA;color:var(--green-700)}
+
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--nasa-100);padding:5px;border-radius:14px}
+.seg button{border:0;background:transparent;border-radius:10px;padding:8px 2px 7px;font-weight:800;font-size:12.5px;color:var(--nasa-900);display:flex;flex-direction:column;align-items:center;gap:3px;transition:background .15s}
+.seg button[aria-pressed="true"]{background:#fff;box-shadow:0 2px 0 #B8CDEB, inset 0 0 0 2px var(--nasa-500)}
+.seg button:disabled{opacity:.4}
+.seg .drops{font-size:10px}
+.hint{font-size:12.5px;color:var(--muted);font-weight:700;margin:8px 2px 0;line-height:1.4}
+.hint b{color:var(--ink)}
+
+.fert-list{display:grid;gap:6px}
+.fert{border:0;display:flex;align-items:center;gap:10px;background:var(--beige-50);border-radius:12px;padding:8px 10px;text-align:left;box-shadow:inset 0 0 0 2px var(--beige-200)}
+.fert[aria-pressed="true"]{background:#F6EEE3;box-shadow:inset 0 0 0 3px var(--soil-500)}
+.fert .fic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none}
+.fert b{display:block;font-size:13.5px;font-weight:800}
+.fert small{display:block;font-size:11.5px;color:var(--muted);font-weight:700}
+.fert .cost{margin-left:auto;font-size:12.5px;font-weight:800;color:var(--soil-700)}
+
+.plan-sum{background:var(--beige-100);border-radius:14px;padding:10px 12px;display:grid;gap:4px;font-size:13px;font-weight:700}
+.plan-sum div{display:flex;justify-content:space-between}
+.plan-sum .total{border-top:2px dashed var(--beige-300);padding-top:6px;margin-top:2px;font-size:15px;font-weight:800}
+.warn-line{font-size:12.5px;color:var(--red-600);font-weight:800;display:none}
+.warn-line.show{display:block}
+.confirm{width:100%}
+
+/* NASA data */
+.nasa-head{background:linear-gradient(135deg,var(--nasa-900),var(--nasa-700));color:#fff;border-radius:16px;padding:12px 14px;display:flex;align-items:center;gap:10px;position:relative;overflow:hidden}
+.nasa-head::after{content:"";position:absolute;right:-20px;top:-30px;width:110px;height:110px;border-radius:50%;border:2px dashed rgba(255,255,255,.2)}
+.nasa-head h2{font-size:19px}
+.nasa-head p{margin:0;font-size:12px;font-weight:700;opacity:.85}
+.data-list{display:grid;gap:10px}
+.datum{background:var(--beige-50);border-radius:14px;padding:11px 12px;box-shadow:inset 0 0 0 2px var(--beige-200)}
+.datum-top{display:flex;align-items:center;gap:8px}
+.datum-top .dic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:none;color:#fff}
+.datum-top h3{font-family:var(--font-body);font-size:13.5px;font-weight:800}
+.chip{margin-left:auto;font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.chip.hot,.chip.dry{background:var(--red-100);color:var(--red-600)}
+.chip.warm{background:var(--amber-100);color:#95600A}
+.chip.ok{background:var(--green-100);color:var(--green-700)}
+.chip.wet,.chip.cool{background:var(--nasa-100);color:var(--nasa-700)}
+.datum-val{display:flex;align-items:baseline;gap:6px;margin:6px 0 2px}
+.datum-val b{font-family:var(--font-display);font-size:30px;font-weight:600;line-height:1}
+.datum-val span{font-size:13px;font-weight:800;color:var(--muted)}
+.datum-val em{margin-left:auto;font-style:normal;font-size:12px;font-weight:800;color:var(--muted)}
+.gauge{position:relative;height:10px;border-radius:99px;margin:8px 0 4px}
+.gauge .mk{position:absolute;top:-4px;width:6px;height:18px;border-radius:4px;background:var(--ink);box-shadow:0 0 0 2px #fff;transform:translateX(-50%);transition:left .6s cubic-bezier(.3,1.4,.5,1)}
+.gauge .avg{position:absolute;top:-3px;width:2px;height:16px;background:repeating-linear-gradient(var(--ink) 0 2px,transparent 2px 4px);opacity:.55}
+.gauge-labels{display:flex;justify-content:space-between;font-size:10.5px;font-weight:800;color:var(--muted)}
+.src{font-size:11px;font-weight:800;color:var(--nasa-700);margin-top:6px;display:flex;align-items:center;gap:5px}
+.src::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--nasa-500)}
+.insight{background:var(--nasa-100);border-radius:14px;padding:11px 12px;font-size:13px;line-height:1.45;font-weight:700;color:var(--nasa-900)}
+.insight b{display:flex;align-items:center;gap:6px;font-size:12px;letter-spacing:.7px;text-transform:uppercase;margin-bottom:3px}
+.obs{font-size:12px;font-weight:700;color:var(--muted);line-height:1.45;border-top:2px dashed var(--beige-200);padding-top:10px}
+.obs strong{color:var(--ink)}
+
+/* ---------- Stage / field ---------- */
+.stage{grid-area:stage;position:relative;overflow:hidden;min-height:470px;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--sky-top) 0%,var(--sky-bot) 58%);transition:background 1s;border-radius:var(--r-lg)}
+.stage[data-weather="showers"]{--sky-top:#BFE1F5;--sky-bot:#EEF6E6}
+.stage[data-weather="heat"]{--sky-top:#FBD98A;--sky-bot:#FBF0D6}
+.stage[data-weather="rain"]{--sky-top:#9FB3C6;--sky-bot:#E3E9EA}
+.stage[data-weather="clear"]{--sky-top:#A9DCF7;--sky-bot:#F3F8E8}
+.stage[data-weather="cloudy"]{--sky-top:#B9BFC4;--sky-bot:#ECEBE4}
+.stage-bar{position:relative;z-index:4;display:flex;align-items:flex-start;gap:8px;padding:14px;flex-wrap:wrap}
+.cond{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.92);backdrop-filter:blur(6px);border-radius:16px;padding:7px 14px 7px 7px;box-shadow:0 3px 0 rgba(0,0,0,.08)}
+.cond .cic{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:#fff;transition:background .6s}
+.cond small{display:block;font-size:11px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--muted)}
+.cond b{font-family:var(--font-display);font-size:18px;font-weight:600;line-height:1.1}
+.wx{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.7);border-radius:99px;padding:8px 12px;font-weight:800;font-size:13px}
+.view-toggle{margin-left:auto;display:inline-flex;background:rgba(255,255,255,.85);border-radius:14px;padding:4px;gap:2px;box-shadow:0 3px 0 rgba(0,0,0,.08)}
+.view-toggle button{border:0;background:transparent;border-radius:10px;padding:7px 11px;font-weight:800;font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--muted)}
+.view-toggle button[aria-pressed="true"]{background:var(--green-900);color:#fff}
+.view-toggle button.sat-btn[aria-pressed="true"]{background:var(--nasa-700)}
+.field-wrap{position:relative;flex:1;display:flex;align-items:center;justify-content:center;padding:0 10px 10px;z-index:2}
+.fieldsvg{width:100%;max-width:760px;height:auto;display:block;overflow:visible}
+
+/* field state palettes */
+.stage{--leaf:#6DBF6A;--leaf-dark:#3F8F48;--head:#CFE39A;--head2:#B8D98A;--soil:#7A5234;--soil-dark:#5E3D25;--soil-line:#6A4629;--grass:#8CCB6E;--grass-side:#5E9A4A;--grow:.38;--tilt:0deg;--puddle:0;--cracks:0;--spark:0}
+.stage[data-state="healthy"]{--leaf:#3FA24F;--leaf-dark:#277A38;--head:#D9BE52;--head2:#B8533A;--grow:1}
+.stage[data-state="drought"]{--leaf:#C2A650;--leaf-dark:#977A36;--head:#CDAE72;--head2:#9F6F4A;--soil:#B28C60;--soil-dark:#977149;--soil-line:#A07A4F;--grass:#C9BE78;--grass-side:#A39753;--grow:.74;--tilt:-9deg;--cracks:1}
+.stage[data-state="overwater"]{--leaf:#9DBB5E;--leaf-dark:#6F8E3E;--head:#C6C27A;--head2:#9E7055;--soil:#4B3222;--soil-dark:#36241A;--soil-line:#3E2A1C;--grass:#6FAF62;--grass-side:#4F8746;--grow:.82;--tilt:5deg;--puddle:.9}
+.stage[data-state="lownutrients"]{--leaf:#C9CC62;--leaf-dark:#8E77A6;--head:#D2C98A;--head2:#A48369;--soil:#9D7A5A;--soil-dark:#806043;--soil-line:#8C6A4C;--grow:.6}
+.stage[data-state="harvest"]{--leaf:#C9A43A;--leaf-dark:#A07F23;--head:#F1C54B;--head2:#C45A2E;--grow:1.06;--spark:1}
+.stage[data-state="failed"]{--leaf:#9A8F7C;--leaf-dark:#72695B;--head:#8B8171;--head2:#7A6A5E;--soil:#9E8669;--soil-dark:#836D53;--soil-line:#8E775C;--grass:#AEAA84;--grass-side:#8B875F;--grow:.5;--tilt:-14deg;--cracks:.6}
+
+.fieldsvg .grass{fill:var(--grass)}
+.fieldsvg .grass-side{fill:var(--grass-side)}
+.fieldsvg .tile{fill:var(--soil);stroke:var(--soil-dark);stroke-width:1.2}
+.fieldsvg .furrow{stroke:var(--soil-line);stroke-width:2.2;stroke-linecap:round;fill:none}
+.fieldsvg .lf{fill:var(--leaf)}
+.fieldsvg .ld{fill:var(--leaf-dark)}
+.fieldsvg .hd{fill:var(--head)}
+.fieldsvg .hd2{fill:var(--head2)}
+.fieldsvg .st{stroke:var(--leaf-dark);fill:none;stroke-width:2;stroke-linecap:round}
+.fieldsvg .puddle{fill:#6FB4E8;opacity:var(--puddle)}
+.fieldsvg .puddle-hl{fill:#D3ECFB;opacity:calc(var(--puddle) * .8)}
+.fieldsvg .crack{stroke:#6E4F31;stroke-width:1.4;fill:none;opacity:var(--cracks);stroke-linecap:round}
+.fieldsvg .spark{fill:#FFE17A;opacity:var(--spark)}
+.fieldsvg .tile,.fieldsvg .furrow,.fieldsvg .lf,.fieldsvg .ld,.fieldsvg .hd,.fieldsvg .hd2,.fieldsvg .st,.fieldsvg .grass,.fieldsvg .grass-side,.fieldsvg .puddle,.fieldsvg .puddle-hl,.fieldsvg .crack,.fieldsvg .spark{transition:fill 1s, stroke 1s, opacity 1s}
+.pl{transform:scale(calc(var(--grow) * var(--j,1))) rotate(var(--tilt));transition:transform 1.1s cubic-bezier(.3,1.3,.5,1)}
+.sway{animation:sway 4s ease-in-out infinite;animation-delay:var(--d,0s)}
+@keyframes sway{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2.5deg)}}
+.stage[data-state="drought"] .sway,.stage[data-state="failed"] .sway{animation:none}
+.spark{animation:twinkle 1.6s ease-in-out infinite;animation-delay:var(--d,0s);transform-box:fill-box;transform-origin:center}
+@keyframes twinkle{50%{transform:scale(.4)}}
+.tank-water{transition:height 1s, y 1s}
+
+/* NDVI view */
+.fieldsvg .ndvi-tile{opacity:0;transition:opacity .6s, fill .8s}
+.stage.ndvi .ndvi-tile{opacity:1}
+.stage.ndvi .plants{opacity:.12}
+.plants{transition:opacity .6s}
+.ndvi-legend{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:5;background:rgba(255,255,255,.94);border-radius:14px;padding:8px 12px;display:none;align-items:center;gap:10px;font-size:12px;font-weight:800;box-shadow:0 3px 0 rgba(0,0,0,.08);white-space:nowrap}
+.stage.ndvi .ndvi-legend{display:flex}
+.ndvi-legend i{display:block;width:140px;height:10px;border-radius:99px;background:linear-gradient(90deg,#A6732E,#D9C257,#9CCB5B,#2E8B3E,#0F5A2A)}
+
+/* weather */
+.weather{position:absolute;inset:0;pointer-events:none;z-index:1}
+.sun{position:absolute;top:70px;right:8%;width:70px;height:70px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#FFF1A8,#F9B233 70%);
+  box-shadow:0 0 0 12px rgba(249,178,51,.16),0 0 0 26px rgba(249,178,51,.08);opacity:0;transform:scale(.7);transition:opacity .9s, transform .9s}
+.stage[data-weather="showers"] .sun,.stage[data-weather="clear"] .sun{opacity:1;transform:scale(.85)}
+.stage[data-weather="heat"] .sun{opacity:1;transform:scale(1.25);animation:heatpulse 2.4s ease-in-out infinite}
+@keyframes heatpulse{50%{box-shadow:0 0 0 18px rgba(249,178,51,.22),0 0 0 40px rgba(249,160,51,.1)}}
+.cloud{position:absolute;height:34px;border-radius:40px;background:#fff;opacity:0;transition:opacity .9s, background .9s;animation:drift 26s linear infinite}
+.cloud::before,.cloud::after{content:"";position:absolute;background:inherit;border-radius:50%}
+.cloud::before{width:48%;height:150%;left:14%;bottom:30%}
+.cloud::after{width:36%;height:120%;right:14%;bottom:34%}
+.c1{width:120px;top:76px;left:6%}
+.c2{width:90px;top:120px;left:38%;animation-duration:34s;animation-delay:-12s}
+.c3{width:140px;top:64px;left:62%;animation-duration:30s;animation-delay:-6s}
+@keyframes drift{0%{transform:translateX(-30px)}50%{transform:translateX(40px)}100%{transform:translateX(-30px)}}
+.stage[data-weather="showers"] .c1,.stage[data-weather="showers"] .c3{opacity:.95}
+.stage[data-weather="rain"] .cloud,.stage[data-weather="cloudy"] .cloud{opacity:1;background:#8E9CA8}
+.stage[data-weather="clear"] .c2{opacity:.8}
+.rain{position:absolute;inset:90px 0 0 0;opacity:0;transition:opacity .9s}
+.rain span{position:absolute;top:-20px;width:2px;height:16px;border-radius:2px;background:linear-gradient(transparent,#4B8FD1);animation:fall linear infinite}
+@keyframes fall{to{transform:translate(-28px,420px)}}
+.stage[data-weather="rain"] .rain{opacity:.85}
+.stage[data-weather="showers"] .rain{opacity:.3}
+.haze{position:absolute;left:0;right:0;bottom:0;height:60%;opacity:0;transition:opacity 1s;
+  background:repeating-linear-gradient(0deg,rgba(255,190,90,.0) 0 14px,rgba(255,200,110,.18) 14px 18px);animation:shimmer 2.6s ease-in-out infinite}
+@keyframes shimmer{50%{transform:translateY(-6px) skewX(2deg)}}
+.stage[data-weather="heat"] .haze{opacity:1}
+
+/* field banner (harvest) */
+.banner{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(23,59,42,.18)}
+.banner.show{display:flex}
+.banner-card{background:#fff;border-radius:24px;padding:22px 24px;text-align:center;max-width:380px;box-shadow:0 6px 0 var(--beige-300),0 20px 50px rgba(0,0,0,.18);animation:pop .5s cubic-bezier(.3,1.5,.5,1)}
+.banner-card .big-ic{width:74px;height:74px;border-radius:24px;margin:-58px auto 10px;display:grid;place-items:center;color:#fff;box-shadow:0 5px 0 rgba(0,0,0,.18)}
+.banner-card h2{font-size:28px}
+.banner-card p{color:var(--muted);font-weight:700;line-height:1.5;margin:6px 0 16px}
+@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ---------- Bottom meters ---------- */
+.meters{grid-area:bottom;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px}
+.meter{display:flex;gap:12px;align-items:center;padding:8px 10px;border-radius:16px;background:var(--beige-50);position:relative}
+.meter .mic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 3px 0 rgba(0,0,0,.15)}
+.meter .mic svg{width:24px;height:24px}
+.meter-body{flex:1;min-width:0}
+.meter small{display:block;font-size:11.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.meter .val{display:flex;align-items:baseline;gap:4px}
+.meter .val b{font-family:var(--font-display);font-size:28px;font-weight:600;line-height:1.05}
+.meter .val span{font-size:13px;font-weight:800;color:var(--muted)}
+.bar{height:9px;border-radius:99px;background:var(--beige-200);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;border-radius:99px;transition:width 1s cubic-bezier(.3,1.2,.5,1), background .6s}
+.delta{position:absolute;top:-10px;right:10px;font-family:var(--font-display);font-weight:700;font-size:15px;padding:2px 9px;border-radius:99px;color:#fff;opacity:0;transform:translateY(6px);transition:opacity .3s, transform .3s}
+.delta.show{opacity:1;transform:none}
+.delta.up{background:var(--green-500)}
+.delta.down{background:var(--red-600)}
+
+/* ---------- Modals ---------- */
+.overlay{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(23,40,30,.45);backdrop-filter:blur(3px)}
+.overlay.show{display:flex}
+.modal{background:#fff;border-radius:26px;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 6px 0 var(--beige-300),0 30px 70px rgba(0,0,0,.25);animation:pop .4s cubic-bezier(.3,1.4,.5,1)}
+.report-head{display:flex;align-items:center;gap:14px;padding:20px 22px 14px;border-bottom:2px dashed var(--beige-200)}
+.report-head .ric{width:58px;height:58px;border-radius:18px;display:grid;place-items:center;color:#fff;flex:none;box-shadow:0 4px 0 rgba(0,0,0,.18)}
+.report-head .ric svg{width:30px;height:30px}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.report-head h2{font-size:26px;line-height:1.1}
+.field-ndvi{margin-left:auto;text-align:right;background:var(--nasa-100);color:var(--nasa-900);border-radius:14px;padding:6px 12px;flex:none}
+.field-ndvi small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase}
+.field-ndvi b{font-family:var(--font-display);font-size:22px;font-weight:600}
+.report-body{padding:16px 22px 22px;display:grid;gap:14px}
+.deltas{display:flex;flex-wrap:wrap;gap:6px}
+.dchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:800;padding:6px 10px;border-radius:99px;background:var(--beige-100)}
+.dchip .n{font-family:var(--font-display);font-weight:700}
+.dchip .n.up{color:var(--green-700)} .dchip .n.down{color:var(--red-600)}
+.chain{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;position:relative}
+.link{border-radius:16px;padding:11px 12px;font-size:13px;line-height:1.45;font-weight:700;position:relative}
+.link h4{font-family:var(--font-body);font-size:11.5px;letter-spacing:.7px;text-transform:uppercase;font-weight:800;display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.link.data{background:var(--nasa-100);color:var(--nasa-900)}
+.link.dec{background:var(--beige-100)}
+.link.res{background:var(--green-100);color:var(--green-900)}
+.link.res.bad{background:var(--red-100);color:#6E1F16}
+.link.res.warn{background:var(--amber-100);color:#5C3B03}
+.link:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:10px;height:10px;background:var(--beige-400);clip-path:polygon(0 0,100% 50%,0 100%);transform:translateY(-50%);z-index:1}
+.note{display:flex;gap:10px;align-items:flex-start;border-radius:14px;padding:11px 12px;font-size:13.5px;line-height:1.5;font-weight:600}
+.note .nic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:none;color:#fff}
+.note b{font-weight:800}
+.note.sci{background:#F1ECF8}
+.note.sci .nic{background:var(--purple-500)}
+.note.tip{background:var(--amber-100)}
+.note.tip .nic{background:var(--amber-500)}
+.report-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.report-foot small{font-size:12px;font-weight:700;color:var(--muted);max-width:300px;line-height:1.4}
+
+/* tutorial */
+.tut{padding:26px 26px 22px;text-align:center}
+.tut-art{height:170px;border-radius:20px;display:grid;place-items:center;margin-bottom:18px;position:relative;overflow:hidden}
+.tut-art svg.big{width:120px;height:120px}
+.tut-art svg.art{width:72px;height:88px}
+.tut-step{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--nasa-700)}
+.tut h2{font-size:28px;margin:4px 0 8px;color:var(--green-900)}
+.tut p{font-size:16px;line-height:1.55;color:var(--muted);font-weight:600;margin:0 auto;max-width:470px}
+.tut-mini{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:14px}
+.tut-mini span{font-size:12.5px;font-weight:800;padding:5px 10px;border-radius:99px;background:var(--beige-100)}
+.tut-nav{display:flex;align-items:center;justify-content:space-between;margin-top:22px;gap:10px}
+.dots{display:flex;gap:7px}
+.dots i{width:10px;height:10px;border-radius:99px;background:var(--beige-300);transition:width .25s, background .25s}
+.dots i.on{width:28px;background:var(--green-500)}
+
+/* pause */
+.pause{padding:28px;text-align:center;width:min(380px,100%)}
+.pause .pic{width:70px;height:70px;border-radius:22px;background:var(--green-900);color:#fff;display:grid;place-items:center;margin:0 auto 12px}
+.pause h2{font-size:30px}
+.pause p{color:var(--muted);font-weight:700;margin:6px 0 18px}
+.pause .stack{display:grid;gap:10px}
+
+/* ---------- Final screen ---------- */
+.final{max-width:1080px;margin:0 auto;padding:24px 16px 40px}
+.final-hero{display:grid;grid-template-columns:340px 1fr;gap:18px}
+.score-card{padding:26px 22px;text-align:center;background:linear-gradient(180deg,var(--green-900),var(--green-800));color:#fff;border-radius:26px;box-shadow:0 6px 0 #0F2A1D;position:relative;overflow:hidden}
+.score-card::before{content:"";position:absolute;inset:auto -40px -60px -40px;height:140px;background:repeating-linear-gradient(-30deg,rgba(255,255,255,.05) 0 12px,transparent 12px 24px)}
+.stars{display:flex;justify-content:center;gap:6px;margin-bottom:6px}
+.stars svg{width:52px;height:52px}
+.stars .s2{transform:translateY(-12px);width:64px;height:64px}
+.star-on{fill:#FFD35C;stroke:#C9971B}
+.star-off{fill:rgba(255,255,255,.14);stroke:rgba(255,255,255,.25)}
+.score-num{font-family:var(--font-display);font-size:84px;font-weight:700;line-height:1;margin-top:6px}
+.score-num span{font-size:26px;opacity:.6}
+.rank{display:inline-block;margin-top:8px;background:rgba(255,255,255,.12);border-radius:99px;padding:6px 14px;font-weight:800;font-size:14px}
+.harvest-result{margin-top:16px;border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center;text-align:left;font-weight:700;font-size:13.5px;line-height:1.4}
+.harvest-result.ok{background:rgba(159,211,154,.2)}
+.harvest-result.bad{background:rgba(232,120,100,.22)}
+.harvest-result .hic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.final-side{display:grid;gap:18px;align-content:start}
+.final-side .card{padding:18px}
+.final h3{font-size:19px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.timeline{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.tl{border-radius:16px;padding:12px;background:var(--beige-50);box-shadow:inset 0 0 0 2px var(--beige-200)}
+.tl-top{display:flex;align-items:center;gap:8px}
+.tl-top svg.art{width:38px;height:38px}
+.tl small{font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);display:block}
+.tl b{font-size:15px;font-weight:800}
+.tl .state{display:inline-flex;align-items:center;gap:5px;margin-top:8px;font-size:12px;font-weight:800;padding:4px 9px;border-radius:99px}
+.tl .hp{font-family:var(--font-display);font-size:22px;font-weight:600;margin-left:auto}
+.breakdown{display:grid;gap:10px}
+.brow{display:grid;grid-template-columns:150px 1fr 50px;gap:10px;align-items:center;font-weight:800;font-size:13.5px}
+.brow .bar{margin:0;height:12px}
+.brow span:last-child{text-align:right;font-family:var(--font-display);font-size:17px}
+.final-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.final-grid .card{padding:18px}
+.badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.bdg{text-align:center;padding:12px 8px;border-radius:16px;background:var(--beige-50);box-shadow:inset 0 0 0 2px var(--beige-200)}
+.bdg .medal{width:52px;height:52px;border-radius:50%;margin:0 auto 6px;display:grid;place-items:center;color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.18), inset 0 0 0 4px rgba(255,255,255,.35)}
+.bdg b{display:block;font-size:13px;font-weight:800}
+.bdg small{display:block;font-size:11.5px;color:var(--muted);font-weight:700;line-height:1.3;margin-top:2px}
+.bdg.locked{opacity:.5}
+.bdg.locked .medal{background:var(--beige-300)!important;box-shadow:none}
+.lessons{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.lessons li{display:flex;gap:10px;font-size:14px;line-height:1.5;font-weight:600}
+.lessons li .lic{width:28px;height:28px;border-radius:9px;background:var(--nasa-500);color:#fff;display:grid;place-items:center;flex:none}
+.final-actions{display:flex;gap:12px;justify-content:center;margin-top:24px;flex-wrap:wrap}
+.disclaimer{text-align:center;font-size:12.5px;font-weight:700;color:var(--muted);margin-top:16px;line-height:1.5}
+
+/* ---------- Design states dock ---------- */
+.dock{position:fixed;left:16px;bottom:16px;z-index:60}
+.dock-btn{background:var(--ink);color:#fff;border:0;border-radius:99px;padding:10px 14px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.dock-menu{position:absolute;left:0;bottom:48px;width:230px;background:#fff;border-radius:18px;padding:10px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:none;max-height:70vh;overflow:auto}
+.dock.open .dock-menu{display:block}
+.overlay.show ~ .dock{display:none}
+.dock-menu h5{margin:6px 8px 4px;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-family:var(--font-body)}
+.dock-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:10px;font-weight:700;font-size:13.5px}
+.dock-menu button:hover{background:var(--beige-100)}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){
+  .game{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"top top" "stage stage" "bottom bottom" "left right"}
+  .meters{grid-template-columns:repeat(5,1fr)}
+}
+@media (max-width:860px){
+  .meters{grid-template-columns:repeat(3,1fr)}
+  .final-hero,.final-grid{grid-template-columns:1fr}
+}
+@media (max-width:720px){
+  .game{grid-template-columns:minmax(0,1fr);grid-template-areas:"top" "stage" "bottom" "left" "right";padding:10px;gap:12px}
+  .topbar{gap:10px}
+  .brand span{display:none}
+  .top-actions{order:2}
+  .season-pill{order:3;flex-basis:100%}
+  .season-dots{margin-left:auto}
+  .mission{order:5;flex-basis:100%}
+  .tut{padding:20px 18px 18px}
+  .tut-art svg.art{width:56px;height:72px}
+  .stage{min-height:360px}
+  .stage-bar{padding:10px}
+  .view-toggle button span:last-child{display:none}
+  .meters{grid-template-columns:repeat(2,1fr);gap:8px;padding:10px}
+  .meter{padding:6px}
+  .meter .mic{width:38px;height:38px}
+  .meter .val b{font-size:23px}
+  .meter:last-child{grid-column:1 / -1}
+  .chain{grid-template-columns:1fr}
+  .link:not(:last-child)::after{right:50%;top:auto;bottom:-9px;transform:translateX(50%) rotate(90deg)}
+  .timeline{grid-template-columns:1fr}
+  .brow{grid-template-columns:110px 1fr 44px}
+  .report-head{flex-wrap:wrap}
+  .field-ndvi{margin-left:0}
+  .score-num{font-size:70px}
+  .sun{top:84px;width:52px;height:52px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ================= LOADING ================= -->
+<section id="scr-loading" class="center-screen" aria-live="polite">
+  <div class="boot">
+    <div class="orbit">
+      <div class="orbit-ring"></div>
+      <div class="planet"></div>
+      <div class="sat" data-ic="satellite-color"></div>
+    </div>
+    <h1>Tuning in to Earth orbit…</h1>
+    <p>Downloading this season's satellite observations for your farm.</p>
+    <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Loading NASA data"><i id="boot-bar"></i></div>
+    <ul class="boot-steps" id="boot-steps">
+      <li><span class="dot" data-ic="check"></span>Air temperature<small>NASA POWER</small></li>
+      <li><span class="dot" data-ic="check"></span>Rainfall<small>GPM IMERG</small></li>
+      <li><span class="dot" data-ic="check"></span>Soil moisture<small>SMAP</small></li>
+      <li><span class="dot" data-ic="check"></span>Vegetation health<small>MODIS NDVI</small></li>
+    </ul>
+  </div>
+</section>
+
+<!-- ================= ERROR ================= -->
+<section id="scr-error" class="center-screen" aria-live="assertive">
+  <div class="boot err">
+    <div class="orbit">
+      <div class="orbit-ring"></div>
+      <div class="planet"></div>
+      <div class="sat" data-ic="satellite-color"></div>
+      <div class="err-badge">!</div>
+    </div>
+    <h1>Signal lost</h1>
+    <p>We couldn't download NASA data for this season. Your farm progress is safe — nothing was planted yet.</p>
+    <span class="err-code">Data server timed out · code 504</span>
+    <div class="boot-actions">
+      <button class="btn btn-nasa btn-lg" id="btn-retry"><span data-ic="refresh"></span>Try again</button>
+      <button class="btn btn-lg" id="btn-offline"><span data-ic="map"></span>Play with sample data</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GAME ================= -->
+<main id="scr-game" class="screen">
+  <div class="game">
+    <!-- Top -->
+    <header class="topbar card">
+      <div class="brand">
+        <div class="brand-mark" data-ic="logo"></div>
+        <div><h1>Farm Navigator</h1><span>Powered by NASA Earth data</span></div>
+      </div>
+      <div class="season-pill">
+        <div class="season-emoji" id="season-ic"></div>
+        <div><b id="season-name">Spring 2026</b><small id="season-count">Season 1 of 3</small></div>
+        <div class="season-dots" id="season-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+      </div>
+      <div class="mission">
+        <div class="mission-flag" data-ic="flag"></div>
+        <div><small>Current mission</small><b id="mission-text">Establish a healthy crop without wasting water</b></div>
+      </div>
+      <div class="top-actions">
+        <button class="btn btn-icon" id="btn-help" aria-label="How to play" title="How to play"><span data-ic="help"></span></button>
+        <button class="btn btn-icon" id="btn-pause" aria-label="Pause game" title="Pause"><span data-ic="pause"></span></button>
+      </div>
+    </header>
+
+    <!-- Left: decisions -->
+    <aside class="panel card left" aria-label="Your decisions">
+      <div class="panel-title">
+        <div class="badge-ic" style="background:var(--green-500)" data-ic="sprout"></div>
+        <div><h2>Your decisions</h2><p>Read the data, then plan the season</p></div>
+      </div>
+      <div>
+        <p class="group-label">1 · Crop <em id="crop-note"></em></p>
+        <div class="crop-grid" id="crop-grid" role="group" aria-label="Crop"></div>
+      </div>
+      <div>
+        <p class="group-label">2 · Irrigation <em id="reserve-note"></em></p>
+        <div class="seg" id="irr-seg" role="group" aria-label="Irrigation level"></div>
+        <p class="hint" id="irr-hint"></p>
+      </div>
+      <div>
+        <p class="group-label">3 · Fertilizer</p>
+        <div class="fert-list" id="fert-list" role="group" aria-label="Fertilizer"></div>
+      </div>
+      <div class="plan-sum" id="plan-sum"></div>
+      <p class="warn-line" id="warn-line">Not enough budget for this plan.</p>
+      <button class="btn btn-primary btn-lg confirm" id="btn-confirm"><span data-ic="check"></span>Confirm &amp; grow season</button>
+    </aside>
+
+    <!-- Center: field -->
+    <section class="stage card" id="stage" data-state="planning" data-weather="showers" aria-label="Your farm field">
+      <div class="weather" aria-hidden="true">
+        <div class="sun"></div>
+        <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+        <div class="rain" id="rain"></div>
+        <div class="haze"></div>
+      </div>
+      <div class="stage-bar">
+        <div class="cond" aria-live="polite">
+          <div class="cic" id="cond-ic"></div>
+          <div><small>Field condition</small><b id="cond-text">Ready to plant</b></div>
+        </div>
+        <div class="wx" id="wx-chip"></div>
+        <div class="view-toggle" role="group" aria-label="Field view">
+          <button aria-pressed="true" id="view-farm"><span data-ic="sprout"></span><span>Farm</span></button>
+          <button aria-pressed="false" id="view-sat" class="sat-btn"><span data-ic="satellite"></span><span>Satellite NDVI</span></button>
+        </div>
+      </div>
+      <div class="field-wrap"><svg class="fieldsvg" id="field" viewBox="0 0 600 385" role="img" aria-label="Isometric view of your farm field"></svg></div>
+      <div class="ndvi-legend" aria-hidden="true">NDVI <span>0.1</span><i></i><span>0.9</span></div>
+      <div class="banner" id="banner"><div class="banner-card" id="banner-card"></div></div>
+    </section>
+
+    <!-- Right: NASA data -->
+    <aside class="panel card right" aria-label="NASA data">
+      <div class="nasa-head">
+        <div data-ic="satellite-white"></div>
+        <div><h2>NASA Data</h2><p id="nasa-sub">Seasonal observations for your farm</p></div>
+      </div>
+      <div class="data-list" id="data-list"></div>
+      <div class="insight" id="insight"></div>
+      <div class="obs" id="obs"></div>
+    </aside>
+
+    <!-- Bottom: meters -->
+    <footer class="meters card" id="meters" aria-label="Farm status"></footer>
+  </div>
+</main>
+
+<!-- ================= FINAL ================= -->
+<main id="scr-final" class="screen">
+  <div class="final" id="final"></div>
+</main>
+
+<!-- ================= OVERLAYS ================= -->
+<div class="overlay" id="ov-report" role="dialog" aria-modal="true" aria-labelledby="rep-title"><div class="modal" id="report"></div></div>
+<div class="overlay" id="ov-tut" role="dialog" aria-modal="true" aria-labelledby="tut-title"><div class="modal"><div class="tut" id="tut"></div></div></div>
+<div class="overlay" id="ov-pause" role="dialog" aria-modal="true" aria-labelledby="pause-title">
+  <div class="modal pause">
+    <div class="pic" data-ic="pause"></div>
+    <h2 id="pause-title">Paused</h2>
+    <p>Your field will wait. Satellites keep orbiting.</p>
+    <div class="stack">
+      <button class="btn btn-primary btn-lg" id="btn-resume"><span data-ic="play"></span>Resume</button>
+      <button class="btn btn-lg" id="btn-pause-help"><span data-ic="help"></span>How to play</button>
+      <button class="btn btn-lg btn-ghost" id="btn-restart"><span data-ic="refresh"></span>Restart farm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Design review dock -->
+<div class="dock" id="dock">
+  <div class="dock-menu" id="dock-menu">
+    <h5>Screens</h5>
+    <button data-go="loading">Loading</button>
+    <button data-go="error">Error</button>
+    <button data-go="tutorial">Tutorial</button>
+    <button data-go="game">Game dashboard</button>
+    <button data-go="final-win">Final score · success</button>
+    <button data-go="final-fail">Final score · failed</button>
+    <h5>Field states</h5>
+    <button data-go="healthy">Healthy crops</button>
+    <button data-go="drought">Drought stress</button>
+    <button data-go="overwater">Overwatering</button>
+    <button data-go="lownutrients">Low soil nutrients</button>
+    <button data-go="harvest">Successful harvest</button>
+    <button data-go="failed">Failed harvest</button>
+    <button data-go="report">Season report</button>
+  </div>
+  <button class="dock-btn" id="dock-btn" aria-expanded="false" aria-controls="dock-menu"><span data-ic="grid"></span>Design states</button>
+</div>
+
+<script>
+/* =========================================================
+   ICONS
+   ========================================================= */
+const P = (d, extra='') => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${d}</svg>`;
+const IC = {
+  check: P('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+  help: P('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 015 1c0 1.8-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>'),
+  pause: P('<rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/>'),
+  play: P('<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>'),
+  refresh: P('<path d="M20 11a8 8 0 00-14.3-4.6L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0014.3 4.6L20 16"/><path d="M20 20v-4h-4"/>'),
+  map: P('<path d="M9 4L3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5z"/><path d="M9 4v13M15 6.5v13"/>'),
+  flag: P('<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5" fill="currentColor"/>'),
+  sprout: P('<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.2-3 6.5-7.5 6.5z"/><path d="M12 14.5C12 11 9.5 9 5 9c0 3.6 2.6 5.5 7 5.5z"/>'),
+  leaf: P('<path d="M5 19c0-8 5-13.5 15-14-0.5 10-6 15-14 15"/><path d="M5 19l7-7"/>'),
+  soil: P('<path d="M3 9h18M3 14h18M3 19h18"/><path d="M8 9V5M12 9V3.5M16 9V5"/>'),
+  drop: P('<path d="M12 3.5s6.5 7 6.5 11.2A6.5 6.5 0 015.5 14.7C5.5 10.5 12 3.5 12 3.5z"/>'),
+  dropFill: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5s7 7.4 7 12a7 7 0 01-14 0c0-4.6 7-12 7-12z"/></svg>',
+  coin: P('<circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 2.9 5.8 1.6 5.8 4.3 0 1.3-1.3 2.1-3 2.1-1.3 0-2.4-.5-2.9-1.5M12 6.3v1.5M12 16.3v1.4"/>'),
+  globe: P('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.7 3.6 5.5 3.6 8.5s-1 5.8-3.6 8.5c-2.6-2.7-3.6-5.5-3.6-8.5s1-5.8 3.6-8.5z"/>'),
+  recycle: P('<path d="M7.5 10.5L5 15h6"/><path d="M9.5 6.8l2-3.3 3.6 6"/><path d="M16 16.8h4.6l-3.1-5.4"/><path d="M5 15l2.6 4.5h5.2M11.5 3.5L9 7.8M20.6 16.8l-2.5 2.7"/>'),
+  thermo: P('<path d="M14 14.8V5a2 2 0 00-4 0v9.8a4 4 0 104 0z"/><path d="M12 9v7.5"/>'),
+  rain: P('<path d="M7 15a4.5 4.5 0 01.6-9A5.5 5.5 0 0118 7.5a3.8 3.8 0 01-.5 7.5H7z"/><path d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/>'),
+  sun: P('<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'),
+  cloud: P('<path d="M7 18a4.5 4.5 0 01.6-9A5.5 5.5 0 0118 10.5a3.8 3.8 0 01-.5 7.5H7z"/>'),
+  heat: P('<circle cx="12" cy="9" r="3.6"/><path d="M12 2.5v1.6M5.8 5l1.1 1.1M18.2 5l-1.1 1.1M3.5 11h1.6M18.9 11h1.6"/><path d="M4 16c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0M4 20c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0"/>'),
+  ndvi: P('<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>'),
+  satellite: P('<rect x="9.2" y="9.2" width="5.6" height="5.6" rx="1" transform="rotate(45 12 12)"/><path d="M6.5 6.5L3.5 3.5M4 9l5-5M17.5 17.5l3 3M15 20l5-5"/><path d="M15.5 8.5l2-2"/>'),
+  'satellite-white': '<svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="rgba(255,255,255,.14)"/><g transform="rotate(-30 20 20)"><rect x="16" y="15" width="8" height="10" rx="2" fill="#fff"/><rect x="5" y="16.5" width="9" height="7" rx="1" fill="#8FC1FF"/><rect x="26" y="16.5" width="9" height="7" rx="1" fill="#8FC1FF"/><path d="M14 20h2M24 20h2" stroke="#fff" stroke-width="1.6"/><path d="M20 25v4" stroke="#fff" stroke-width="1.6"/><circle cx="20" cy="30" r="1.8" fill="#FFD35C"/></g></svg>',
+  'satellite-color': '<svg viewBox="0 0 40 40" aria-hidden="true"><g transform="rotate(20 20 20)"><rect x="15.5" y="14" width="9" height="12" rx="2.2" fill="#0B3D91"/><rect x="3" y="16" width="11" height="8" rx="1.2" fill="#1E6FD9"/><path d="M6.5 16v8M10 16v8" stroke="#8FC1FF" stroke-width="1"/><rect x="26" y="16" width="11" height="8" rx="1.2" fill="#1E6FD9"/><path d="M29.5 16v8M33 16v8" stroke="#8FC1FF" stroke-width="1"/><path d="M14 20h1.5M24.5 20h1.5" stroke="#0B3D91" stroke-width="2"/><circle cx="20" cy="29" r="2.2" fill="#FFD35C"/></g></svg>',
+  logo: '<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="12.5" fill="none" stroke="#9FD39A" stroke-width="2.4"/><path d="M16 6.5l3.2 9.5L16 25.5 12.8 16z" fill="#fff"/><path d="M16 6.5l3.2 9.5H12.8z" fill="#FFD35C"/><path d="M16 21c0-3.2 2.2-5.2 5.6-5.2 0 3.2-2.3 5.2-5.6 5.2z" fill="#9FD39A"/></svg>',
+  alert: P('<path d="M12 3.5L2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>'),
+  flask: P('<path d="M9.5 3.5h5M10.5 3.5v5.5L5 19a1.5 1.5 0 001.3 2h11.4a1.5 1.5 0 001.3-2l-5.5-10V3.5"/><path d="M7.5 15h9"/>'),
+  compost: P('<path d="M4 20c1-5 4-7.5 8-7.5s7 2.5 8 7.5z"/><path d="M9 12.8c.5-3 2-5 5-6.3M12 8.5c-1.5-1.3-3.5-1.6-5.5-1"/>'),
+  none: P('<circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/>'),
+  legume: P('<path d="M6 17c-1.8-4.5 1-10 7-11.5 3.5-.8 5.5.5 5 2.5-.6 2.2-4.3 1.8-6.5 4.5S9.5 19.5 6 17z"/><circle cx="10.2" cy="13" r="1" fill="currentColor"/><circle cx="13" cy="10" r="1" fill="currentColor"/>'),
+  star: P('<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"/>'),
+  trophy: P('<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H4.5c0 3 1.5 4.5 3.7 4.8M16 6h3.5c0 3-1.5 4.5-3.7 4.8M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/>'),
+  x: P('<path d="M6 6l12 12M18 6L6 18"/>'),
+  arrow: P('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  grid: P('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>'),
+  bulb: P('<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/>'),
+  atom: P('<circle cx="12" cy="12" r="1.6" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.8"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(-60 12 12)"/>'),
+  farmer: P('<circle cx="12" cy="9" r="3.5"/><path d="M6.5 7.5h11M8 7.5c.4-2.3 2-3.8 4-3.8s3.6 1.5 4 3.8"/><path d="M5 20.5c.8-3.8 3.6-5.8 7-5.8s6.2 2 7 5.8"/>'),
+  basket: P('<path d="M3.5 10h17l-2 9.5h-13z"/><path d="M8 10l3-5.5M16 10l-3-5.5M9 13.5v3M12 13.5v3M15 13.5v3"/>'),
+};
+function hydrateIcons(root=document){ root.querySelectorAll('[data-ic]').forEach(n=>{ if(!n.dataset.done){ n.insertAdjacentHTML('afterbegin', IC[n.dataset.ic]||''); n.dataset.done=1; } }); }
+const $ = id => document.getElementById(id);
+const fmt$ = n => (n<0?'−$':'$') + Math.abs(Math.round(n)).toLocaleString('en-US');
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const sign = n => n>0?'+'+n:(n<0?'−'+Math.abs(n):'±0');
+
+/* =========================================================
+   GAME DATA
+   Values are illustrative scenario data modeled on NASA products
+   (NASA POWER, GPM IMERG, SMAP, MODIS). Not a real forecast.
+   ========================================================= */
+const SEASONS = [
+  { id:'spring', name:'Spring', year:2026, period:'Mar 1 – May 31, 2026', weather:'showers',
+    mission:'Establish a healthy crop without wasting water',
+    temp:16, tempAvg:14.8, rain:62, rainAvg:55, sm:0.31, smAvg:0.28, ndvi:0.42, ndviAvg:0.45, irrMul:1,
+    insight:'Soil is already moist and rain is near normal. Most crops won\'t need much extra water this spring.' },
+  { id:'summer', name:'Summer', year:2026, period:'Jun 1 – Aug 31, 2026', weather:'heat',
+    mission:'Keep your field alive through a heatwave',
+    temp:31, tempAvg:26.5, rain:12, rainAvg:40, sm:0.12, smAvg:0.21, ndvi:0.35, ndviAvg:0.58, irrMul:1.4,
+    insight:'Rain is 70% below normal and topsoil is dry. Heat raises crop water demand. Choose drought‑tolerant crops or irrigate.' },
+  { id:'autumn', name:'Autumn', year:2026, period:'Sep 1 – Nov 30, 2026', weather:'rain',
+    mission:'Finish strong and protect your soil',
+    temp:14, tempAvg:13.2, rain:78, rainAvg:60, sm:0.33, smAvg:0.27, ndvi:0.40, ndviAvg:0.44, irrMul:1,
+    insight:'A wet autumn: rain is 30% above normal and soil is moist. Extra irrigation or quick‑release fertilizer could wash away.' },
+];
+const CROPS = {
+  wheat:   { name:'Wheat',    water:110, temp:[12,24], uptake:18, seed:900,  price:2600, drops:2, soil:-1, tag:'Cool season' },
+  maize:   { name:'Maize',    water:170, temp:[18,32], uptake:28, seed:1400, price:3800, drops:3, soil:-4, tag:'High value' },
+  sorghum: { name:'Sorghum',  water:100, temp:[20,36], uptake:16, seed:800,  price:2300, drops:1, soil:0,  tag:'Drought tolerant', tol:true },
+  chickpea:{ name:'Chickpea', water:95,  temp:[15,28], uptake:-10,seed:1000, price:2900, drops:1, soil:5,  tag:'Fixes nitrogen', tol:true, legume:true },
+};
+const IRR = [
+  { label:'Off', mm:0 }, { label:'Low', mm:35 }, { label:'Medium', mm:70 }, { label:'High', mm:105 },
+];
+const IRR_COST = 250, IRR_RESERVE = 10;
+const FERTS = {
+  none:      { name:'None',             desc:'Rely on soil nitrogen',        n:0,  soil:0,  sus:0,  cost:0,   ic:'none',    bg:'#B7A68A' },
+  compost:   { name:'Compost',          desc:'Slow release, feeds soil life', n:14, soil:8,  sus:4,  cost:600, ic:'compost', bg:'#8C5E3C' },
+  synthetic: { name:'Synthetic N',      desc:'Fast boost, can wash away',     n:30, soil:-3, sus:-8, cost:500, ic:'flask',   bg:'#7A5AA6' },
+  green:     { name:'Legume green manure', desc:'Plowed-in cover crop',      n:12, soil:6,  sus:6,  cost:450, ic:'legume',  bg:'#3E9B4F' },
+};
+const STATES = {
+  planning:     { label:'Ready to plant',     color:'#6D8A5E', ic:'sprout' },
+  healthy:      { label:'Healthy crops',      color:'#3E9B4F', ic:'leaf' },
+  drought:      { label:'Drought stress',     color:'#D07A1E', ic:'heat' },
+  overwater:    { label:'Overwatering',       color:'#1E6FD9', ic:'rain' },
+  lownutrients: { label:'Low soil nutrients', color:'#7A5AA6', ic:'soil' },
+  harvest:      { label:'Successful harvest', color:'#C9971B', ic:'basket' },
+  failed:       { label:'Failed harvest',     color:'#8E2A1F', ic:'x' },
+};
+const WEATHER = {
+  showers:{ ic:'rain', text:'Mild · light showers' },
+  heat:   { ic:'heat', text:'Heatwave · dry' },
+  rain:   { ic:'rain', text:'Wet · frequent rain' },
+  clear:  { ic:'sun',  text:'Clear skies' },
+  cloudy: { ic:'cloud',text:'Overcast' },
+};
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let G;
+function newGame(){
+  G = { season:0, crop:'wheat', irr:0, fert:'none', phase:'plan', soilN:50,
+        m:{ health:null, soil:60, water:100, budget:10000, sus:50 }, history:[] };
+}
+newGame();
+
+/* =========================================================
+   CROP ART (SVG, base at 0,0)
+   ========================================================= */
+const PLANT = {
+  wheat:`<ellipse cx="0" cy="1" rx="8" ry="3" fill="rgba(0,0,0,.14)"/>
+    <path class="st" d="M0 0C-1-12-3-21-6.5-30"/><path class="st" d="M0 0C0-13 0-24 0-35"/><path class="st" d="M0 0C1-12 3-21 6.5-29"/>
+    <path class="lf" d="M0-7Q-10-13-13-7Q-6-8 0-4.5Z"/><path class="lf" d="M0-12Q9-18 12-12Q6-13 0-9.5Z"/>
+    <ellipse class="hd" cx="-7.5" cy="-34" rx="2.8" ry="6.2" transform="rotate(-14 -7.5 -34)"/>
+    <ellipse class="hd" cx="0" cy="-39.5" rx="3" ry="6.8"/>
+    <ellipse class="hd" cx="7.5" cy="-33" rx="2.8" ry="6.2" transform="rotate(14 7.5 -33)"/>`,
+  maize:`<ellipse cx="0" cy="1" rx="9" ry="3.2" fill="rgba(0,0,0,.14)"/>
+    <rect class="ld" x="-1.8" y="-48" width="3.6" height="48" rx="1.6"/>
+    <path class="lf" d="M0-10Q-15-17-19-7Q-10-11 0-7Z"/><path class="lf" d="M0-20Q15-29 20-18Q10-23 0-17Z"/>
+    <path class="lf" d="M0-31Q-13-40-17-31Q-8-34 0-28Z"/><path class="lf" d="M0-40Q10-48 14-42Q7-43 0-37Z"/>
+    <ellipse class="hd" cx="4" cy="-25" rx="2.8" ry="6.5" transform="rotate(10 4 -25)"/>
+    <path d="M0-48l-3.5-6M0-48v-7.5M0-48l3.5-6" stroke="var(--head)" stroke-width="1.6" stroke-linecap="round"/>`,
+  sorghum:`<ellipse cx="0" cy="1" rx="8" ry="3" fill="rgba(0,0,0,.14)"/>
+    <rect class="ld" x="-1.5" y="-36" width="3" height="36" rx="1.4"/>
+    <path class="lf" d="M0-9Q-13-15-16-6Q-8-10 0-6Z"/><path class="lf" d="M0-18Q13-25 16-16Q8-20 0-15Z"/><path class="lf" d="M0-27Q-10-33-13-26Q-6-28 0-24Z"/>
+    <ellipse class="hd2" cx="0" cy="-42" rx="5.4" ry="8.4"/>
+    <circle cx="-2" cy="-45" r="1.3" fill="rgba(255,255,255,.35)"/><circle cx="2" cy="-40" r="1.3" fill="rgba(255,255,255,.3)"/>`,
+  chickpea:`<ellipse cx="0" cy="1" rx="11" ry="3.6" fill="rgba(0,0,0,.14)"/>
+    <path class="st" d="M0 0V-9"/>
+    <circle class="ld" cx="-7.5" cy="-9" r="7"/><circle class="ld" cx="7" cy="-8" r="6.5"/>
+    <circle class="lf" cx="5.5" cy="-12" r="7.5"/><circle class="lf" cx="-4" cy="-14" r="7"/><circle class="lf" cx="1" cy="-19" r="7.2"/>
+    <ellipse class="hd" cx="4.5" cy="-14" rx="2.3" ry="1.6"/><ellipse class="hd" cx="-5" cy="-11" rx="2.3" ry="1.6"/><ellipse class="hd" cx="0" cy="-21" rx="2.3" ry="1.6"/>`,
+};
+function cropIcon(id){
+  return `<svg class="art" viewBox="-26 -60 52 64" aria-hidden="true" style="--leaf:#3FA24F;--leaf-dark:#277A38;--head:#D9BE52;--head2:#B8533A">
+    <g class="fieldsvg-mini">${PLANT[id].replace(/class="lf"/g,'fill="var(--leaf)"').replace(/class="ld"/g,'fill="var(--leaf-dark)"').replace(/class="hd2"/g,'fill="var(--head2)"').replace(/class="hd"/g,'fill="var(--head)"').replace(/class="st"/g,'stroke="var(--leaf-dark)" fill="none" stroke-width="2" stroke-linecap="round"')}</g></svg>`;
+}
+
+/* =========================================================
+   FIELD RENDER
+   ========================================================= */
+const N=6, TW=80, TH=40, OX=300, OY=112;
+const tileXY = (i,j)=>[OX+(i-j)*TW/2, OY+(i+j)*TH/2];
+let rand = (s=>()=>{s=(s*16807)%2147483647;return s/2147483647})(42);
+const tileNoise = [];
+function buildField(){
+  const svg = $('field');
+  let g = '';
+  // meadow
+  const gT=[300,64], gR=[592,210], gB=[300,356], gL=[8,210];
+  g += `<polygon class="grass-side" points="${gL} ${gB} ${gB[0]},${gB[1]+20} ${gL[0]},${gL[1]+20}"/>`;
+  g += `<polygon class="grass-side" points="${gB} ${gR} ${gR[0]},${gR[1]+20} ${gB[0]},${gB[1]+20}" style="filter:brightness(.88)"/>`;
+  g += `<polygon class="grass" points="${gT} ${gR} ${gB} ${gL}"/>`;
+  // decor behind field
+  g += barn(470,166) + tank(128,168);
+  // tiles
+  let tiles='', ndvi='', furrows='', puddles='', cracks='';
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const [x,y]=tileXY(i,j);
+    const pts=`${x},${y-TH/2} ${x+TW/2},${y} ${x},${y+TH/2} ${x-TW/2},${y}`;
+    tiles += `<polygon class="tile" points="${pts}"/>`;
+    const nz = rand()*2-1; tileNoise.push(nz);
+    ndvi += `<polygon class="ndvi-tile" data-n="${nz.toFixed(3)}" points="${pts}"/>`;
+    furrows += `<path class="furrow" d="M${x-26},${y-5} L${x-2},${y-17} M${x-14},${y+7} L${x+14},${y-7} M${x+2},${y+17} L${x+26},${y+5}"/>`;
+    if(rand()<.38){ puddles += `<ellipse class="puddle" cx="${x+rand()*16-8}" cy="${y+rand()*6-3}" rx="${14+rand()*8}" ry="${5+rand()*2.5}"/><ellipse class="puddle-hl" cx="${x-4}" cy="${y-1}" rx="5" ry="1.6"/>`; }
+    if(rand()<.55){ const cx=x+rand()*20-10, cy=y+rand()*8-4; cracks += `<path class="crack" d="M${cx-12},${cy} l6,-2 l4,3 l6,-3 l5,2 M${cx-2},${cy+1} l-2,5 M${cx+8},${cy-2} l3,-5"/>`; }
+  }
+  g += `<g>${tiles}</g><g>${furrows}</g><g>${cracks}</g><g>${puddles}</g><g>${ndvi}</g><g class="plants" id="plants"></g>`;
+  // decor in front
+  g += tree(78,246) + tree(532,262,.85) + fence();
+  // sparkles
+  let sp=''; for(let k=0;k<16;k++){ const [x,y]=tileXY(rand()*N,rand()*N); sp += `<path class="spark" style="--d:${(rand()*1.6).toFixed(2)}s" d="M${x},${y-60} l2.5,6 6,2.5 -6,2.5 -2.5,6 -2.5,-6 -6,-2.5 6,-2.5z"/>`; }
+  g += `<g>${sp}</g>`;
+  svg.innerHTML = g;
+  renderPlants();
+}
+function barn(x,y){
+  return `<g transform="translate(${x},${y})">
+    <ellipse cx="0" cy="2" rx="34" ry="9" fill="rgba(0,0,0,.12)"/>
+    <polygon points="-30,-2 0,12 0,-24 -30,-38" fill="#B5412F"/><polygon points="0,12 26,-1 26,-37 0,-24" fill="#94321F"/>
+    <polygon points="-30,-38 -15,-58 12,-45 0,-24" fill="#5A3A2A"/><polygon points="0,-24 12,-45 26,-37" fill="#452C20"/>
+    <polygon points="-20,-4 -8,2 -8,-18 -20,-24" fill="#fff" opacity=".9"/><path d="M-20,-24 L-8,2 M-8,-18 L-20,-4" stroke="#B5412F" stroke-width="2"/>
+  </g>`;
+}
+function tank(x,y){
+  return `<g transform="translate(${x},${y})" aria-label="Water reserve tank">
+    <ellipse cx="0" cy="2" rx="20" ry="6" fill="rgba(0,0,0,.12)"/>
+    <rect x="-16" y="-46" width="32" height="46" rx="4" fill="#DCE6EE"/>
+    <clipPath id="tclip"><rect x="-13" y="-43" width="26" height="40" rx="3"/></clipPath>
+    <rect x="-13" y="-43" width="26" height="40" rx="3" fill="#B9C8D4"/>
+    <rect class="tank-water" id="tank-water" clip-path="url(#tclip)" x="-13" y="-43" width="26" height="40" fill="#3B8EDB"/>
+    <ellipse cx="0" cy="-46" rx="16" ry="4.5" fill="#EEF3F7"/>
+    <path d="M-16,-30h32M-16,-15h32" stroke="#AEBBC6" stroke-width="1.5"/>
+  </g>`;
+}
+function tree(x,y,s=1){
+  return `<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="2" rx="18" ry="5" fill="rgba(0,0,0,.14)"/><rect x="-3" y="-20" width="6" height="22" rx="2" fill="#6B4428"/>
+    <circle cx="-8" cy="-26" r="12" class="ld"/><circle cx="8" cy="-28" r="12" class="ld"/><circle cx="0" cy="-38" r="14" class="lf"/></g>`;
+}
+function fence(){
+  // posts along the front-right edge of the meadow
+  let s=''; for(let k=0;k<7;k++){ const t=k/6; const x=320+t*250, y=346-t*125; s+=`<rect x="${x-2}" y="${y-16}" width="4" height="16" rx="1" fill="#A07A52"/>`; }
+  return `<g>${s}<path d="M320,338 L570,213 M320,344 L570,219" stroke="#C49A6C" stroke-width="2.5"/></g>`;
+}
+function renderPlants(){
+  const pts=[];
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const [x,y]=tileXY(i,j);
+    pts.push([x-15,y-6.5],[x+13,y+6.5]);
+  }
+  pts.sort((a,b)=>a[1]-b[1]);
+  let r2 = (s=>()=>{s=(s*16807)%2147483647;return s/2147483647})(7);
+  const art = PLANT[G.crop];
+  $('plants').innerHTML = pts.map(([x,y])=>`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})"><g class="pl" style="--j:${(0.86+r2()*0.26).toFixed(2)}"><g class="sway" style="--d:${(-r2()*4).toFixed(2)}s">${art}</g></g></g>`).join('');
+}
+function paintNDVI(v){
+  document.querySelectorAll('.ndvi-tile').forEach(t=>{
+    const n = clamp(v + parseFloat(t.dataset.n)*0.07, 0.05, 0.92);
+    t.style.fill = ndviColor(n);
+  });
+}
+function ndviColor(v){
+  const stops=[[0.1,[166,115,46]],[0.3,[217,194,87]],[0.5,[156,203,91]],[0.7,[46,139,62]],[0.9,[15,90,42]]];
+  if(v<=stops[0][0]) return `rgb(${stops[0][1]})`;
+  for(let k=1;k<stops.length;k++){ if(v<=stops[k][0]){ const [a,ca]=stops[k-1],[b,cb]=stops[k]; const t=(v-a)/(b-a); return `rgb(${ca.map((c,i)=>Math.round(c+(cb[i]-c)*t))})`; } }
+  return `rgb(${stops[4][1]})`;
+}
+function setTank(pct){
+  const h = 40*pct/100; const w=$('tank-water'); if(!w) return;
+  w.setAttribute('y', (-3-h).toFixed(1)); w.setAttribute('height', h.toFixed(1));
+}
+function setFieldState(state, weather){
+  const st=$('stage');
+  st.dataset.state = state;
+  if(weather) st.dataset.weather = weather;
+  const S=STATES[state];
+  const ic=$('cond-ic'); ic.style.background=S.color; ic.innerHTML=IC[S.ic];
+  $('cond-text').textContent=S.label;
+  const W=WEATHER[st.dataset.weather]; $('wx-chip').innerHTML = IC[W.ic] + W.text;
+  const ndv = {planning:.22, healthy:.74, drought:.33, overwater:.46, lownutrients:.41, harvest:.62, failed:.18}[state];
+  paintNDVI(ndv);
+}
+
+/* =========================================================
+   PANELS
+   ========================================================= */
+function renderControls(){
+  const s = SEASONS[G.season], locked = G.phase!=='plan';
+  // crops
+  $('crop-grid').innerHTML = Object.entries(CROPS).map(([id,c])=>`
+    <button class="crop" data-crop="${id}" aria-pressed="${G.crop===id}" ${locked?'disabled':''}>
+      ${cropIcon(id)}<b>${c.name}</b>
+      <span class="meta"><span class="drops" aria-label="Water need ${c.drops} of 3">${[1,2,3].map(k=>`<span class="${k<=c.drops?'':'off'}">${IC.dropFill}</span>`).join('')}</span>$${c.seed.toLocaleString('en-US')}</span>
+      <span class="tag ${c.legume?'leg':c.tol?'tol':''}">${c.tag}</span>
+    </button>`).join('');
+  const c=CROPS[G.crop];
+  $('crop-note').textContent = `Likes ${c.temp[0]}–${c.temp[1]}°C`;
+  // irrigation
+  const perLevel = Math.round(IRR_RESERVE*s.irrMul);
+  $('irr-seg').innerHTML = IRR.map((o,k)=>{
+    const dis = locked || k*perLevel > G.m.water;
+    return `<button data-irr="${k}" aria-pressed="${G.irr===k}" ${dis?'disabled':''}><span class="drops">${k===0?IC.none:Array.from({length:k},()=>IC.dropFill).join('')}</span>${o.label}</button>`;
+  }).join('');
+  $('reserve-note').textContent = `Reserve ${G.m.water}%`;
+  const irr=IRR[G.irr];
+  $('irr-hint').innerHTML = G.irr===0 ? `No extra water — the crop relies on <b>rain + stored soil water</b>.`
+    : `Adds <b>~${irr.mm} mm</b> of water · uses <b>${G.irr*perLevel}%</b> of your reserve${s.irrMul>1?' (heat increases evaporation)':''}.`;
+  // fertilizer
+  $('fert-list').innerHTML = Object.entries(FERTS).map(([id,f])=>`
+    <button class="fert" data-fert="${id}" aria-pressed="${G.fert===id}" ${locked?'disabled':''}>
+      <span class="fic" style="background:${f.bg};color:#fff">${IC[f.ic]}</span>
+      <span><b>${f.name}</b><small>${f.desc}</small></span><span class="cost">${f.cost?'$'+f.cost:'Free'}</span>
+    </button>`).join('');
+  // summary
+  const cost = planCost();
+  $('plan-sum').innerHTML = `<div><span>Seeds · ${c.name}</span><span>$${c.seed.toLocaleString('en-US')}</span></div>
+    <div><span>Irrigation · ${irr.label}</span><span>$${(G.irr*IRR_COST).toLocaleString('en-US')}</span></div>
+    <div><span>Fertilizer · ${FERTS[G.fert].name}</span><span>$${FERTS[G.fert].cost.toLocaleString('en-US')}</span></div>
+    <div class="total"><span>Season cost</span><span>$${cost.toLocaleString('en-US')}</span></div>`;
+  const broke = cost > G.m.budget;
+  $('warn-line').classList.toggle('show', broke && !locked);
+  $('btn-confirm').disabled = locked || broke;
+  $('btn-confirm').innerHTML = IC.check + (G.phase==='plan' ? `Confirm &amp; grow ${s.name.toLowerCase()}` : 'Season in progress…');
+  if(G.phase==='plan') renderPlants();
+}
+function planCost(){ return CROPS[G.crop].seed + G.irr*IRR_COST + FERTS[G.fert].cost; }
+
+function renderSeason(){
+  const s=SEASONS[G.season];
+  $('season-name').textContent = `${s.name} ${s.year}`;
+  $('season-count').textContent = `Season ${G.season+1} of 3`;
+  $('season-ic').innerHTML = IC[{spring:'sprout',summer:'sun',autumn:'leaf'}[s.id]];
+  $('mission-text').textContent = s.mission;
+  [...$('season-dots').children].forEach((d,k)=>{ d.className = k<G.season?'done':k===G.season?'now':''; });
+  renderData(s);
+}
+function gauge(val,min,max,avg,grad,labels){
+  const p=v=>clamp((v-min)/(max-min)*100,0,100);
+  return `<div class="gauge" style="background:${grad}"><span class="avg" style="left:${p(avg)}%" title="20-year average"></span><span class="mk" style="left:${p(val)}%"></span></div>
+    <div class="gauge-labels">${labels.map(l=>`<span>${l}</span>`).join('')}</div>`;
+}
+function renderData(s){
+  const tA = +(s.temp-s.tempAvg).toFixed(1), rA = Math.round((s.rain-s.rainAvg)/s.rainAvg*100);
+  const tChip = tA>3?['hot','Hotter than normal']:tA>1?['warm','Warm']:tA<-1?['cool','Cooler']:['ok','Normal'];
+  const rChip = rA<-30?['dry','Very dry']:rA<-10?['warm','Below normal']:rA>20?['wet','Wet']:['ok','Normal'];
+  const mChip = s.sm<0.2?['dry','Dry topsoil']:s.sm>0.3?['wet','Moist']:['ok','Adequate'];
+  const vChip = s.ndvi<0.4?['warm','Sparse cover']:s.ndvi<0.6?['ok','Moderate']:['ok','Dense'];
+  const item=(ic,bg,title,chip,val,unit,anom,g,src)=>`<div class="datum">
+      <div class="datum-top"><span class="dic" style="background:${bg}">${IC[ic]}</span><h3>${title}</h3><span class="chip ${chip[0]}">${chip[1]}</span></div>
+      <div class="datum-val"><b>${val}</b><span>${unit}</span><em>${anom}</em></div>${g}<div class="src">${src}</div></div>`;
+  $('data-list').innerHTML =
+    item('thermo','#D0632A','Temperature',tChip,s.temp,'°C avg',`${tA>0?'+':''}${tA}°C vs normal`,
+      gauge(s.temp,0,40,s.tempAvg,'linear-gradient(90deg,#7DB6F0,#9CD58A 45%,#F3C04E 70%,#E0602F)',['0°','20°','40°C']),'NASA POWER · 2 m air temp')+
+    item('rain','#1E6FD9','Rainfall',rChip,s.rain,'mm / season',`${rA>0?'+':''}${rA}% vs normal`,
+      gauge(s.rain,0,120,s.rainAvg,'linear-gradient(90deg,#E9D6B4,#9CC6EE 55%,#1E6FD9)',['0','60','120 mm']),'GPM IMERG precipitation')+
+    item('drop','#2A8FA8','Soil moisture',mChip,s.sm.toFixed(2),'m³/m³',`avg ${s.smAvg.toFixed(2)}`,
+      gauge(s.sm,0.05,0.45,s.smAvg,'linear-gradient(90deg,#C99A5E 0 37%,#9CD58A 37% 62%,#6FB4E8 62%)',['Dry','Good','Wet']),'SMAP · top 5 cm of soil')+
+    item('ndvi','#2E8B3E','Vegetation health',vChip,s.ndvi.toFixed(2),'NDVI',`avg ${s.ndviAvg.toFixed(2)}`,
+      gauge(s.ndvi,0,1,s.ndviAvg,'linear-gradient(90deg,#A6732E,#D9C257 30%,#9CCB5B 50%,#2E8B3E 70%,#0F5A2A)',['Bare','','Lush']),'MODIS NDVI · regional cropland');
+  $('insight').innerHTML = `<b>${IC.bulb} What the data says</b>${s.insight}`;
+  $('obs').innerHTML = `<strong>Observation period:</strong> ${s.period} (seasonal mean)<br><strong>Area:</strong> Demo farm, semi‑arid steppe · 43.2°N<br>Normal = 2001–2020 average. Values are illustrative, modeled on NASA products for learning — not a forecast.`;
+  $('nasa-sub').textContent = `${s.name} ${s.year} · seasonal summary`;
+}
+
+const METERS = [
+  { key:'health', label:'Crop health', ic:'leaf',    bg:'#3E9B4F', unit:'%' },
+  { key:'soil',   label:'Soil health', ic:'soil',    bg:'#8C5E3C', unit:'%' },
+  { key:'water',  label:'Water reserve', ic:'drop',  bg:'#1E6FD9', unit:'%' },
+  { key:'budget', label:'Budget',      ic:'coin',    bg:'#C9971B', unit:'' },
+  { key:'sus',    label:'Sustainability', ic:'recycle', bg:'#1E7A6A', unit:'/100' },
+];
+function barColor(v){ return v>=70?'var(--green-500)':v>=45?'var(--amber-500)':'var(--red-600)'; }
+function renderMeters(deltas){
+  $('meters').innerHTML = METERS.map(M=>{
+    const v=G.m[M.key];
+    const shown = v===null?'—':M.key==='budget'?fmt$(v):v;
+    const pct = M.key==='budget'? clamp(v/15000*100,0,100) : (v??0);
+    const col = M.key==='budget'? 'var(--amber-500)' : barColor(v??0);
+    return `<div class="meter" data-k="${M.key}">
+      <div class="mic" style="background:${M.bg}">${IC[M.ic]}</div>
+      <div class="meter-body"><small>${M.label}</small>
+        <div class="val"><b>${shown}</b>${v!==null&&M.key!=='budget'?`<span>${M.unit}</span>`:''}</div>
+        <div class="bar"><i style="width:${pct}%;background:${col}"></i></div></div>
+      <span class="delta"></span></div>`;
+  }).join('');
+  if(deltas) Object.entries(deltas).forEach(([k,d])=>{
+    if(!d) return;
+    const el=document.querySelector(`.meter[data-k="${k}"] .delta`); if(!el) return;
+    el.textContent = k==='budget'? (d>0?'+':'')+fmt$(d) : sign(d);
+    el.className = 'delta '+(d>0?'up':'down');
+    requestAnimationFrame(()=>el.classList.add('show'));
+    setTimeout(()=>el.classList.remove('show'),3200);
+  });
+  setTank(G.m.water);
+}
+
+/* =========================================================
+   SIMULATION
+   ========================================================= */
+function evaluate(){
+  const s=SEASONS[G.season], c=CROPS[G.crop], f=FERTS[G.fert];
+  const heat = c.tol ? 1 : 1 + Math.max(0,s.temp-20)*0.03;
+  const demand = Math.round(c.water*heat);
+  const storage = Math.round(Math.max(0,(s.sm-0.10)*400));
+  const irrMm = IRR[G.irr].mm;
+  const supplyNoIrr = s.rain + storage;
+  const supply = supplyNoIrr + irrMm;
+  const r = supply/demand;
+  const water = r<0.9 ? Math.max(0,100-(0.9-r)*200) : r>1.4 ? Math.max(0,100-(r-1.4)*150) : 100;
+  const nAvail = G.soilN + f.n - c.uptake;
+  const nutr = clamp(nAvail/35*100,0,100);
+  const [lo,hi]=c.temp; const off = s.temp<lo?lo-s.temp : s.temp>hi?s.temp-hi : 0;
+  const tempS = Math.max(0,100-off*6);
+  const health = Math.round(0.5*water + 0.3*nutr + 0.2*tempS);
+  let state='healthy';
+  if(water<70 && r<1) state='drought'; else if(water<70) state='overwater'; else if(nutr<70) state='lownutrients';
+  const wasted = G.irr>0 && supplyNoIrr/demand >= 0.95;
+  const needed = supplyNoIrr/demand < 0.9;
+
+  let dSoil = f.soil + c.soil + (state==='overwater'?-6:0) + (state==='drought'?-3:0) + (state==='lownutrients'?-2:0);
+  let dSus = f.sus + (G.fert==='synthetic' && (s.rain>70||state==='overwater') ? -6:0)
+           + (wasted ? -5*G.irr : 0) + (G.irr>0 && needed && state!=='overwater' ? 3:0)
+           + (c.tol && s.temp>28 ? 6:0) + (c.legume?4:0) + (state==='overwater'?-5:0)
+           + (state==='healthy' && G.irr===0 ? 3:0);
+  const used = Math.round(G.irr*IRR_RESERVE*s.irrMul), refill = Math.round(s.rain/6);
+  const newWater = clamp(G.m.water - used + refill, 0, 100);
+  const revenue = Math.round(c.price*health/100/10)*10;
+  const dBudget = revenue - planCost();
+  const fieldNdvi = +(0.18 + 0.6*health/100).toFixed(2);
+
+  return { s, c, f, demand, storage, supply, supplyNoIrr, r, water, nutr, nAvail, tempS, off, health, state, wasted, needed,
+           dSoil, dSus, used, refill, dWater:newWater-G.m.water, newWater, revenue, dBudget, fieldNdvi };
+}
+function applyResult(R){
+  const d = { health: G.m.health===null? R.health : R.health-G.m.health, soil:0, water:R.dWater, budget:R.dBudget, sus:0 };
+  const soil = clamp(G.m.soil+R.dSoil,0,100), sus=clamp(G.m.sus+R.dSus,0,100);
+  d.soil = soil-G.m.soil; d.sus = sus-G.m.sus;
+  G.m = { health:R.health, soil, water:R.newWater, budget:G.m.budget+R.dBudget, sus };
+  G.soilN = clamp(R.nAvail - (R.state==='overwater'?8:0) + 3, 0, 100);
+  G.history.push({ season:G.season, crop:G.crop, irr:G.irr, fert:G.fert, state:R.state, health:R.health, wasted:R.wasted });
+  return d;
+}
+
+/* =========================================================
+   EXPLANATION (educational)
+   ========================================================= */
+function explain(R){
+  const {s,c}=R, crop=c.name, pct=Math.round(R.r*100);
+  const irrTxt = G.irr===0?'no irrigation':`${IRR[G.irr].label.toLowerCase()} irrigation (+${IRR[G.irr].mm} mm)`;
+  const data = `<b>SMAP</b> soil moisture ${s.sm.toFixed(2)} m³/m³ · <b>GPM</b> rain ${s.rain} mm · <b>POWER</b> ${s.temp}°C`;
+  const decision = `${crop} + ${irrTxt} + ${FERTS[G.fert].name.toLowerCase()==='none'?'no fertilizer':FERTS[G.fert].name}`;
+  let result, cls='', sci, tip;
+  const tempLine = R.off>0 ? ` NASA POWER's ${s.temp}°C average was outside ${crop.toLowerCase()}'s comfortable ${c.temp[0]}–${c.temp[1]}°C range, which slowed growth.` : '';
+  switch(R.state){
+    case 'drought':
+      cls='bad';
+      result = `Rain, stored soil water and irrigation covered only ~${pct}% of the ~${R.demand} mm ${crop.toLowerCase()} needed. Plants closed their pores to save water and growth stalled.${tempLine}`;
+      sci = `Stressed plants close their stomata, so photosynthesis slows. Satellites catch this as falling <b>NDVI</b> — often before leaves visibly turn brown.`;
+      tip = s.sm<0.2 ? `When SMAP shows topsoil below ~0.20 m³/m³, choose a drought‑tolerant crop (sorghum, chickpea) or plan more irrigation.` : `Heavy crops like maize need more water than rain alone supplies here. Match crop water needs to the rainfall forecast.`;
+      break;
+    case 'overwater':
+      cls='bad';
+      result = `Water supply reached ~${pct}% of what ${crop.toLowerCase()} could use. Soil stayed saturated, roots ran short of oxygen and nitrogen washed out.${tempLine}`;
+      sci = `Waterlogged soil pushes out the air roots need, and extra water carries nitrate below the root zone — money lost and a risk to groundwater.`;
+      tip = `SMAP already read ${s.sm.toFixed(2)} m³/m³ (moist). Above ~0.30, irrigation is rarely needed. In wet seasons pick crops that tolerate damp soil.`;
+      break;
+    case 'lownutrients':
+      cls='warn';
+      result = `Water was fine (~${pct}% of demand), but ${crop.toLowerCase()} needed more nitrogen than the soil could supply. Leaves turned pale yellow‑green.${tempLine}`;
+      sci = `Nitrogen builds chlorophyll. Pale leaves reflect more red light, so NDVI drops — MODIS showed only ${s.ndvi.toFixed(2)} regionally this season.`;
+      tip = `Add compost or green manure, or rotate in chickpea — legumes fix nitrogen from the air for the next crop.`;
+      break;
+    default:
+      result = `${crop} had enough water (supply ≈ ${pct}% of demand, inside the safe range) and enough nitrogen to grow a dense canopy.${tempLine}`;
+      sci = `Healthy leaves absorb red light and reflect near‑infrared. NDVI measures that contrast: (NIR − Red) ÷ (NIR + Red).`;
+      tip = R.wasted ? `You irrigated even though rain and soil water were already enough. Skip it next time to save reserve and money.` : R.off>0 ? `Try a crop whose temperature range fits the NASA POWER forecast for even better growth.` : `Keep checking soil moisture before each season — conditions can flip fast.`;
+  }
+  return { data, decision, result, cls, sci, tip };
+}
+
+/* =========================================================
+   FLOW
+   ========================================================= */
+function confirmDecision(){
+  if(G.phase!=='plan') return;
+  const R = evaluate();
+  G.phase='growing'; renderControls();
+  $('stage').classList.remove('ndvi'); setView(false);
+  const weather = R.state==='drought'?'heat':R.state==='overwater'?'rain':SEASONS[G.season].weather;
+  setFieldState(R.state, weather);
+  paintNDVI(R.fieldNdvi);
+  const d = applyResult(R);
+  setTimeout(()=>{ renderMeters(d); renderControls(); }, 500);
+  setTimeout(()=>showReport(R, d), 1500);
+}
+function showReport(R, d){
+  const E=explain(R), S=STATES[R.state], last = G.season===2;
+  $('report').innerHTML = `
+    <div class="report-head">
+      <div class="ric" style="background:${S.color}">${IC[S.ic]}</div>
+      <div><div class="eyebrow">${R.s.name} ${R.s.year} · Season ${G.season+1} result</div><h2 id="rep-title">${S.label}</h2></div>
+      <div class="field-ndvi"><small>Your field NDVI</small><b>${R.fieldNdvi.toFixed(2)}</b></div>
+    </div>
+    <div class="report-body">
+      <div class="deltas">
+        <span class="dchip">${IC.leaf} Crop health <span class="n ${R.health>=70?'up':'down'}">${R.health}%</span></span>
+        ${[['soil','Soil',IC.soil],['water','Water',IC.drop],['sus','Sustainability',IC.recycle]].map(([k,l,i])=>`<span class="dchip">${i} ${l} <span class="n ${d[k]>=0?'up':'down'}">${sign(d[k])}</span></span>`).join('')}
+        <span class="dchip">${IC.coin} Budget <span class="n ${d.budget>=0?'up':'down'}">${d.budget>=0?'+':''}${fmt$(d.budget)}</span></span>
+      </div>
+      <div class="chain">
+        <div class="link data"><h4>${IC.satellite} NASA data</h4>${E.data}</div>
+        <div class="link dec"><h4>${IC.farmer} Your decision</h4>${E.decision}</div>
+        <div class="link res ${E.cls}"><h4>${IC[S.ic]} What happened</h4>${E.result}</div>
+      </div>
+      <div class="note sci"><span class="nic">${IC.atom}</span><span><b>Science note · </b>${E.sci}</span></div>
+      <div class="note tip"><span class="nic">${IC.bulb}</span><span><b>Try next time · </b>${E.tip}</span></div>
+      <div class="report-foot">
+        <small>Sold ${R.c.name.toLowerCase()} for ${fmt$(R.revenue)}. Simplified model for learning — real yields depend on many local factors.</small>
+        <button class="btn btn-primary btn-lg" id="btn-next">${last?IC.basket+'Bring in the harvest':'Next season'+IC.arrow}</button>
+      </div>
+    </div>`;
+  openOv('ov-report');
+  $('btn-next').onclick = ()=>{ closeOv('ov-report'); last ? harvest() : nextSeason(); };
+}
+function nextSeason(){
+  G.season++; G.phase='plan';
+  if(G.irr*Math.round(IRR_RESERVE*SEASONS[G.season].irrMul) > G.m.water) G.irr=0;
+  renderSeason(); setFieldState('planning', SEASONS[G.season].weather); renderControls();
+}
+function finalScore(){
+  const avg = G.history.reduce((a,h)=>a+h.health,0)/Math.max(1,G.history.length);
+  const success = avg>=60 && G.m.budget>0;
+  const budgetBonus = clamp((G.m.budget-10000)/200,-10,10);
+  // A failed harvest costs 15 points and caps the result at one star
+  const score = Math.round(clamp(0.35*avg + 0.2*G.m.soil + 0.15*G.m.water + 0.3*G.m.sus + budgetBonus - (success?0:15), 0, 100));
+  const stars = score>=80?3:score>=60?2:score>=35?1:0;
+  return { avg:Math.round(avg), success, score, stars: success?stars:Math.min(stars,1) };
+}
+function harvest(){
+  const F = finalScore();
+  G.phase='done'; renderControls();
+  setFieldState(F.success?'harvest':'failed', F.success?'clear':'cloudy');
+  showBanner(F.success);
+}
+function showBanner(success){
+  const b=$('banner-card');
+  b.innerHTML = success
+    ? `<div class="big-ic" style="background:#C9971B">${IC.basket}</div><h2>Harvest complete!</h2><p>Your field made it through all three seasons. Let's see how sustainable your choices were.</p><button class="btn btn-primary btn-lg" id="btn-final">${IC.trophy} See final score</button>`
+    : `<div class="big-ic" style="background:#8E2A1F">${IC.x}</div><h2>Harvest failed</h2><p>Too many stressed seasons left the crop weak. Every failed harvest is data too — let's review what the satellites were telling you.</p><button class="btn btn-lg" id="btn-final">${IC.trophy} See final score</button>`;
+  $('banner').classList.add('show');
+  $('btn-final').onclick = ()=>{ $('banner').classList.remove('show'); showFinal(); };
+}
+
+/* =========================================================
+   FINAL SCREEN
+   ========================================================= */
+function showFinal(){
+  const F=finalScore();
+  const rank = F.score>=80?'Master Navigator':F.score>=60?'Skilled Navigator':F.score>=35?'Growing Navigator':'Rookie Navigator';
+  const star=(on,cls='')=>`<svg class="${cls}" viewBox="0 0 24 24"><path class="${on?'star-on':'star-off'}" stroke-width="1.4" stroke-linejoin="round" d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg>`;
+  const H=G.history;
+  const badges = [
+    { n:'Water Wise', d:'Never irrigated when soil was already moist', on:!H.some(h=>h.wasted) && G.m.water>=40, bg:'#1E6FD9', ic:'drop' },
+    { n:'Soil Guardian', d:'Finished with soil health 70+', on:G.m.soil>=70, bg:'#8C5E3C', ic:'soil' },
+    { n:'Data Driven', d:'No drought or overwatering seasons', on:!H.some(h=>h.state==='drought'||h.state==='overwater'), bg:'#0B3D91', ic:'satellite' },
+    { n:'Heat Survivor', d:'Healthy crop through the summer heatwave', on:H[1]&&H[1].health>=70, bg:'#D0632A', ic:'heat' },
+    { n:'Legume Legend', d:'Planted a nitrogen‑fixing legume', on:H.some(h=>CROPS[h.crop].legume), bg:'#3E9B4F', ic:'legume' },
+  ];
+  const lessons = [];
+  if(H.some(h=>h.state==='drought')) lessons.push('SMAP soil moisture below ~0.20 m³/m³ plus low GPM rainfall signals drought risk — pick tolerant crops or budget water.');
+  if(H.some(h=>h.state==='overwater')) lessons.push('When soil is already moist and rain is above normal, extra irrigation wastes water and washes nutrients away.');
+  if(H.some(h=>h.state==='lownutrients')) lessons.push('Falling NDVI with good water can point to nutrient shortage. Legumes and compost rebuild soil nitrogen.');
+  lessons.push('NASA POWER temperature tells you which crops fit the season: every crop has a comfortable range.');
+  lessons.push('NDVI compares near‑infrared and red light to show how green and dense crops are — from space.');
+  $('final').innerHTML = `
+    <div class="final-hero">
+      <div class="score-card">
+        <div class="stars">${star(F.stars>=1)}${star(F.stars>=2,'s2')}${star(F.stars>=3)}</div>
+        <div class="eyebrow" style="color:#BFE3B8">Final sustainability score</div>
+        <div class="score-num">${F.score}<span>/100</span></div>
+        <div class="rank">${rank}</div>
+        <div class="harvest-result ${F.success?'ok':'bad'}">
+          <span class="hic" style="background:${F.success?'#C9971B':'#8E2A1F'}">${F.success?IC.basket:IC.x}</span>
+          <span>${F.success?`Successful harvest · average crop health ${F.avg}%`:`Failed harvest · average crop health ${F.avg}% (60% needed)`}</span>
+        </div>
+      </div>
+      <div class="final-side">
+        <div class="card"><h3>${IC.map} Your three seasons</h3>
+          <div class="timeline">${H.map(h=>{ const S=STATES[h.state], s=SEASONS[h.season]; return `
+            <div class="tl"><div class="tl-top">${cropIcon(h.crop)}<div><small>${s.name}</small><b>${CROPS[h.crop].name}</b></div><span class="hp" style="color:${barColor(h.health)}">${h.health}%</span></div>
+            <span class="state" style="background:${S.color}1f;color:${S.color}">${IC[S.ic]}${S.label}</span></div>`}).join('')}</div>
+        </div>
+        <div class="card"><h3>${IC.grid} Score breakdown</h3>
+          <div class="breakdown">
+            ${[['Avg crop health',F.avg,'35%'],['Soil health',G.m.soil,'20%'],['Water reserve',G.m.water,'15%'],['Sustainability',G.m.sus,'30%']].map(([l,v,w])=>`
+            <div class="brow"><span>${l} <small style="color:var(--muted)">· ${w}</small></span><div class="bar"><i style="width:${v}%;background:${barColor(v)}"></i></div><span>${v}</span></div>`).join('')}
+            <div class="brow"><span>Final budget</span><span style="font-size:13px;color:var(--muted);font-family:var(--font-body)">${G.m.budget>=10000?'Profit bonus':'Loss penalty'}</span><span style="font-size:15px">${fmt$(G.m.budget)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="final-grid">
+      <div class="card"><h3>${IC.trophy} Badges</h3><div class="badges">${badges.map(b=>`<div class="bdg ${b.on?'':'locked'}"><div class="medal" style="background:${b.bg}">${IC[b.ic]}</div><b>${b.n}</b><small>${b.d}</small></div>`).join('')}</div></div>
+      <div class="card"><h3>${IC.satellite} What NASA data taught you</h3><ul class="lessons">${lessons.slice(0,4).map(l=>`<li><span class="lic">${IC.check}</span><span>${l}</span></li>`).join('')}</ul></div>
+    </div>
+    <div class="final-actions">
+      <button class="btn btn-primary btn-lg" id="btn-again">${IC.refresh} Play again</button>
+      <button class="btn btn-lg" id="btn-tut2">${IC.help} Review how to play</button>
+    </div>
+    <p class="disclaimer">Farm Navigator uses a simplified crop model and illustrative data inspired by NASA POWER, GPM, SMAP and MODIS.<br>It teaches how to read Earth observations — it does not predict real yields.</p>`;
+  show('final'); window.scrollTo(0,0);
+  $('btn-again').onclick = restart;
+  $('btn-tut2').onclick = ()=>openTutorial(0);
+}
+
+/* =========================================================
+   TUTORIAL
+   ========================================================= */
+const TUT = [
+  { t:'Welcome, Navigator!', b:'You run a small farm for three seasons. Your goal: grow healthy crops while protecting soil, water and your budget.',
+    art:`<div style="display:flex;gap:10px">${cropIcon('wheat')}${cropIcon('maize')}${cropIcon('sorghum')}${cropIcon('chickpea')}</div>`, bg:'linear-gradient(180deg,#BFE1F5,#EEF6E6)', chips:['3 seasons','4 crops','1 farm'] },
+  { t:'Read the sky first', b:'The NASA Data panel shows what satellites observed: temperature, rainfall, soil moisture and vegetation health. Compare each value with its normal.',
+    art:`<div style="width:120px;height:120px">${IC['satellite-color']}</div>`, bg:'linear-gradient(180deg,#0B3D91,#1E6FD9)', chips:['NASA POWER','GPM IMERG','SMAP','MODIS NDVI'] },
+  { t:'Make your decision', b:'Pick a crop that fits the conditions, set irrigation, and choose a fertilizer. Every choice costs money — and some cost the planet.',
+    art:`<div style="display:flex;gap:12px;color:#fff">${['sprout','drop','flask'].map(i=>`<span style="width:64px;height:64px;border-radius:20px;background:rgba(255,255,255,.18);display:grid;place-items:center">${IC[i].replace('class="icon"','class="icon" style="width:34px;height:34px"')}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#3E9B4F,#23603F)', chips:['Crop','Irrigation','Fertilizer'] },
+  { t:'Watch and learn', b:'Your field reacts: healthy, drought stress, overwatering or low nutrients. After each season you\'ll see how the NASA data explains the result.',
+    art:`<div style="display:flex;gap:10px">${['healthy','drought','overwater','lownutrients'].map(s=>`<span style="width:54px;height:54px;border-radius:16px;background:${STATES[s].color};color:#fff;display:grid;place-items:center">${IC[STATES[s].ic]}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#FBF0D6,#F3E8D2)', chips:['Balance 5 meters','Earn up to 3 stars'] },
+];
+let tutStep=0;
+function openTutorial(step=0){ tutStep=step; renderTut(); openOv('ov-tut'); }
+function renderTut(){
+  const T=TUT[tutStep], last=tutStep===TUT.length-1;
+  $('tut').innerHTML = `
+    <div class="tut-art" style="background:${T.bg}">${T.art}</div>
+    <div class="tut-step">How to play · ${tutStep+1} of ${TUT.length}</div>
+    <h2 id="tut-title">${T.t}</h2><p>${T.b}</p>
+    <div class="tut-mini">${T.chips.map(c=>`<span>${c}</span>`).join('')}</div>
+    <div class="tut-nav">
+      <button class="btn btn-ghost" id="tut-skip">${tutStep===0?'Skip':IC.arrow.replace('<path d="M5 12h14M13 6l6 6-6 6"/>','<path d="M19 12H5M11 6l-6 6 6 6"/>')+'Back'}</button>
+      <div class="dots">${TUT.map((_,k)=>`<i class="${k===tutStep?'on':''}"></i>`).join('')}</div>
+      <button class="btn btn-primary" id="tut-next">${last?'Start farming':'Next'} ${IC.arrow}</button>
+    </div>`;
+  $('tut-skip').onclick = ()=>{ if(tutStep===0){ closeOv('ov-tut'); show('game'); } else { tutStep--; renderTut(); } };
+  $('tut-next').onclick = ()=>{ if(last){ closeOv('ov-tut'); if(!$('scr-final').classList.contains('active')) show('game'); else restart(); } else { tutStep++; renderTut(); } };
+}
+
+/* =========================================================
+   SCREENS / OVERLAYS
+   ========================================================= */
+function show(name){
+  ['loading','error','game','final'].forEach(n=>$('scr-'+n).classList.toggle('active', n===name));
+}
+function openOv(id){ $(id).classList.add('show'); const f=$(id).querySelector('button'); f&&f.focus(); }
+function closeOv(id){ $(id).classList.remove('show'); }
+function closeAllOv(){ document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show')); $('banner').classList.remove('show'); }
+
+let bootTimer;
+function boot(fail=false, then='tutorial'){
+  clearInterval(bootTimer); show('loading');
+  const lis=[...$('boot-steps').children]; let k=0;
+  const step=()=>{
+    lis.forEach((li,i)=>li.className = i<k?'done':i===k?'now':'');
+    $('boot-bar').style.width = (k/lis.length*100)+'%';
+    if(fail && k===2){ clearInterval(bootTimer); setTimeout(()=>show('error'),700); return; }
+    if(k===lis.length){ clearInterval(bootTimer); setTimeout(()=>{ show('game'); if(then==='tutorial') openTutorial(0); },450); return; }
+    k++;
+  };
+  step(); bootTimer=setInterval(step,650);
+}
+function restart(){
+  closeAllOv(); newGame(); renderSeason(); renderMeters(); setFieldState('planning', SEASONS[0].weather); renderControls(); show('game'); window.scrollTo(0,0);
+}
+function setView(sat){
+  $('stage').classList.toggle('ndvi', sat);
+  $('view-sat').setAttribute('aria-pressed', sat); $('view-farm').setAttribute('aria-pressed', !sat);
+}
+
+/* =========================================================
+   EVENTS
+   ========================================================= */
+document.addEventListener('click', e=>{
+  const c=e.target.closest('[data-crop]'); if(c&&!c.disabled){ G.crop=c.dataset.crop; renderControls(); return; }
+  const i=e.target.closest('[data-irr]'); if(i&&!i.disabled){ G.irr=+i.dataset.irr; renderControls(); return; }
+  const f=e.target.closest('[data-fert]'); if(f&&!f.disabled){ G.fert=f.dataset.fert; renderControls(); return; }
+});
+$('btn-confirm').onclick = confirmDecision;
+$('btn-help').onclick = ()=>openTutorial(0);
+$('btn-pause').onclick = ()=>openOv('ov-pause');
+$('btn-resume').onclick = ()=>closeOv('ov-pause');
+$('btn-pause-help').onclick = ()=>{ closeOv('ov-pause'); openTutorial(0); };
+$('btn-restart').onclick = restart;
+$('btn-retry').onclick = ()=>boot(false,'game');
+$('btn-offline').onclick = ()=>{ show('game'); };
+$('view-farm').onclick = ()=>setView(false);
+$('view-sat').onclick = ()=>setView(true);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('ov-pause').classList.contains('show')) closeOv('ov-pause'); else if($('ov-tut').classList.contains('show')) closeOv('ov-tut'); } });
+
+/* Design review dock: jump to any screen/state */
+$('dock-btn').onclick = ()=>{ const o=$('dock').classList.toggle('open'); $('dock-btn').setAttribute('aria-expanded',o); };
+function mockHistory(win){
+  newGame();
+  G.history = win
+    ? [{season:0,crop:'wheat',irr:0,fert:'compost',state:'healthy',health:94},{season:1,crop:'sorghum',irr:2,fert:'none',state:'healthy',health:88},{season:2,crop:'maize',irr:0,fert:'green',state:'healthy',health:91}]
+    : [{season:0,crop:'maize',irr:2,fert:'synthetic',state:'overwater',health:58,wasted:true},{season:1,crop:'maize',irr:1,fert:'none',state:'drought',health:31},{season:2,crop:'chickpea',irr:1,fert:'synthetic',state:'overwater',health:44,wasted:true}];
+  G.m = win ? {health:91,soil:79,water:62,budget:13240,sus:77} : {health:44,soil:41,water:18,budget:7180,sus:22};
+  G.season=2; G.phase='done';
+}
+document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
+  const go=b.dataset.go; $('dock').classList.remove('open'); closeAllOv(); clearInterval(bootTimer);
+  const fieldPreview = (state, crop, weather, season)=>{
+    newGame(); G.season=season; G.crop=crop; G.phase='plan'; renderSeason(); renderMeters(); renderControls();
+    G.phase='done'; renderControls(); setFieldState(state, weather); show('game');
+  };
+  switch(go){
+    case 'loading': boot(false,'tutorial'); clearInterval(bootTimer); { const l=[...$('boot-steps').children]; l.forEach((li,i)=>li.className=i<2?'done':i===2?'now':''); $('boot-bar').style.width='50%'; } break;
+    case 'error': show('error'); break;
+    case 'tutorial': restart(); openTutorial(0); break;
+    case 'game': restart(); break;
+    case 'final-win': mockHistory(true); showFinal(); break;
+    case 'final-fail': mockHistory(false); showFinal(); break;
+    case 'healthy': fieldPreview('healthy','wheat','showers',0); break;
+    case 'drought': fieldPreview('drought','maize','heat',1); break;
+    case 'overwater': fieldPreview('overwater','chickpea','rain',2); break;
+    case 'lownutrients': fieldPreview('lownutrients','maize','showers',0); break;
+    case 'harvest': mockHistory(true); renderSeason(); renderMeters(); renderControls(); renderPlants(); setFieldState('harvest','clear'); show('game'); showBanner(true); break;
+    case 'failed': mockHistory(false); G.crop='chickpea'; renderSeason(); renderMeters(); renderControls(); renderPlants(); setFieldState('failed','cloudy'); show('game'); showBanner(false); break;
+    case 'report': { restart(); G.season=1; G.crop='maize'; G.irr=1; renderSeason(); renderControls(); confirmDecision(); } break;
+  }
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+hydrateIcons();
+(function rain(){ let h=''; for(let k=0;k<60;k++) h+=`<span style="left:${Math.random()*110}%;animation-duration:${(.6+Math.random()*.5).toFixed(2)}s;animation-delay:${(-Math.random()*2).toFixed(2)}s"></span>`; $('rain').innerHTML=h; })();
+buildField();
+renderSeason(); renderMeters(); renderControls(); setFieldState('planning', SEASONS[0].weather);
+const hash = location.hash.replace('#','');
+if(hash){ const b=document.querySelector(`[data-go="${hash}"]`); b ? b.click() : boot(); } else boot();
+</script>
+</body>
+</html>

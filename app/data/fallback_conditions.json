@@ -1,0 +1,33 @@
+{
+  "note": "Illustrative demo values used only when NASA POWER is unavailable. They are not tied to any real location or date.",
+  "profiles": {
+    "default": {
+      "average_temperature_c": 21.5,
+      "rainfall_mm_per_30_days": 38.0,
+      "average_humidity_percent": 48,
+      "average_wind_speed_m_s": 3.2,
+      "solar_radiation": 21.0
+    },
+    "season_1": {
+      "average_temperature_c": 20.5,
+      "rainfall_mm_per_30_days": 55.0,
+      "average_humidity_percent": 55,
+      "average_wind_speed_m_s": 3.0,
+      "solar_radiation": 20.5
+    },
+    "season_2": {
+      "average_temperature_c": 26.8,
+      "rainfall_mm_per_30_days": 14.0,
+      "average_humidity_percent": 34,
+      "average_wind_speed_m_s": 4.1,
+      "solar_radiation": 24.8
+    },
+    "season_3": {
+      "average_temperature_c": 18.2,
+      "rainfall_mm_per_30_days": 110.0,
+      "average_humidity_percent": 68,
+      "average_wind_speed_m_s": 2.6,
+      "solar_radiation": 17.4
+    }
+  }
+}

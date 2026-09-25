@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo skip install",
+  "buildCommand": "mkdir -p dist && f=$(find . -name farm-navigator.html -not -path '*/node_modules/*' | head -n 1) && [ -n \"$f\" ] && cp \"$f\" dist/index.html || { echo 'farm-navigator.html NOT FOUND. Files:'; ls -R | head -60; exit 1; }",
+  "outputDirectory": "dist"
+}
