@@ -1,6 +1,10 @@
-# Never upload secrets or the local Python backend to Vercel
+# Never upload secrets or local environments
 .env
 .venv/
-app/
-__pycache__/
 node_modules/
+__pycache__/
+.pytest_cache/
+dist/
+# Tests are not needed at runtime
+app/tests/
+tests/

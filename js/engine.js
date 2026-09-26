@@ -25,6 +25,12 @@
    * @typedef {{season:Season, pickedAs:string}} PickedSeason
    * @typedef {{code:string, impact:number, param?:string, vars?:Object<string, number|string>}} Reason
    * @typedef {{type:string, severity:string, param:string, value:number, normal:number}} ClimateEvent
+   * @typedef {{id:number, key:string, seasons:string[], start:{budget:number, reserve:number, soil:Soil, history:string[]},
+   *   goals:{metric:string, op:string, value:number}[], stars:{yield:number, water:number, soil:number},
+   *   focus:Object<string, number>}} Level
+   * @typedef {{levelId:number, seasonIndex:number, seasons:Season[], pickedAs:string[], baseline:Baseline, isDemo:boolean,
+   *   budget:number, reserve:number, soil:Soil, cropHistory:string[], startBudget:number, startReserve:number,
+   *   startSoil:Soil, results:any[], finished:boolean, failed:string|null}} Run
    */
 
   /* ---------- Model parameters ---------- */
@@ -225,7 +231,7 @@
     return list.sort(by);
   }
 
-  /** Pick distinct seasons for a level, in chronological order. @param {Climate} climate @param {object} level @returns {PickedSeason[]} */
+  /** Pick distinct seasons for a level, in chronological order. @param {Climate} climate @param {Level} level @returns {PickedSeason[]} */
   function pickSeasons(climate, level) {
     const used = new Set();
     /** @type {PickedSeason[]} */
@@ -291,7 +297,7 @@
     return irr.mm > 0 ? Math.round(irr.reserve * METHODS[n.method].reserveMul) : 0;
   }
 
-  /** Everything the player must choose, plus budget and reserve limits. @param {object} run @param {Decision} d */
+  /** Everything the player must choose, plus budget and reserve limits. @param {Run} run @param {Decision} d */
   function validateDecision(run, d) {
     const missing = [];
     if (!d.crop || !CROPS[d.crop]) missing.push('crop');
@@ -309,12 +315,12 @@
   }
 
   /** Simulate the current season for a decision without changing the run.
-   * @param {object} run @param {Decision} decision */
+   * @param {Run} run @param {Decision} decision */
   function simulate(run, decision) {
     const d = normalizeDecision(decision);
     const s = run.seasons[run.seasonIndex];
     const soil = run.soil;
-    const c = CROPS[d.crop], irr = IRRIGATION[d.irrigation], m = METHODS[d.method];
+    const c = CROPS[d.crop], irr = IRRIGATION[d.irrigation];
     const f = FERTILIZERS[d.fertilizer], p = PROTECTION[d.protection];
     const prev = run.cropHistory[run.cropHistory.length - 1];
     const prev2 = run.cropHistory[run.cropHistory.length - 2];

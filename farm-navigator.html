@@ -147,7 +147,6 @@
   --glass:rgba(255,255,255,.92); --glass-mid:rgba(255,255,255,.85); --glass-soft:rgba(255,255,255,.7);
   --arrow:var(--beige-400);
   --overlay:rgba(23,40,30,.45);
-  --dock-bg:var(--ink);
   --pop-shadow:rgba(0,0,0,.18);
   --tip-bg:var(--ink); --tip-text:#fff;
   color-scheme:light;
@@ -174,7 +173,6 @@
   --glass:rgba(23,33,27,.9); --glass-mid:rgba(23,33,27,.85); --glass-soft:rgba(23,33,27,.72);
   --arrow:#4A5E52;
   --overlay:rgba(5,10,7,.62);
-  --dock-bg:#2A3B31;
   --pop-shadow:rgba(0,0,0,.5);
   --tip-bg:#E4EEE7; --tip-text:#101713;
 }
@@ -638,15 +636,156 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
 .pref.block .pref-val{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis}
 .pref.block .pref-list{position:static;margin-top:10px;min-width:0;box-shadow:inset 0 0 0 2px var(--beige-200)}
 
-/* ---------- Design states dock ---------- */
-.dock{position:fixed;left:16px;bottom:16px;z-index:60}
-.dock-btn{background:var(--dock-bg);color:#fff;border:0;border-radius:99px;padding:10px 14px;font-weight:800;font-size:13px;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
-.dock-menu{position:absolute;left:0;bottom:48px;width:230px;background:var(--surface);border-radius:18px;padding:10px;box-shadow:0 0 0 2px var(--beige-200), 0 12px 40px rgba(0,0,0,.25);display:none;max-height:70vh;overflow:auto}
-.dock.open .dock-menu{display:block}
-.overlay.show ~ .dock{display:none}
-.dock-menu h5{margin:6px 8px 4px;font-size:11px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);font-family:var(--font-body)}
-.dock-menu button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:8px 10px;border-radius:10px;font-weight:700;font-size:13.5px}
-.dock-menu button:hover{background:var(--beige-100)}
+/* ---------- Data status (Live / Cached / Demo) ---------- */
+.status{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:6px 11px 6px 9px;font-size:12.5px;font-weight:800;white-space:nowrap;background:var(--beige-100);color:var(--ink)}
+.status i{width:9px;height:9px;border-radius:50%;flex:none;background:var(--muted)}
+.status.live{background:var(--green-100);color:var(--green-text)}
+.status.live i{background:var(--green-500);box-shadow:0 0 0 3px rgba(62,155,79,.25)}
+.status.cached{background:var(--nasa-100);color:var(--nasa-text)}
+.status.cached i{background:var(--nasa-500)}
+.status.demo{background:var(--amber-100);color:var(--amber-text)}
+.status.demo i{background:var(--amber-500)}
+.nasa-head .status{margin-left:auto;position:relative;z-index:1;background:rgba(255,255,255,.16);color:#fff}
+
+/* ---------- Pages: location, levels, farm report ---------- */
+.page{max-width:1080px;margin:0 auto;padding:16px 16px 40px;display:grid;gap:16px}
+.page-head{padding:22px}
+.page-head h2{font-size:28px;color:var(--heading)}
+.page-head p{color:var(--muted);font-weight:700;margin:6px 0 0;line-height:1.5;max-width:720px}
+.loc-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;align-items:start}
+.loc-card{padding:18px;display:grid;gap:12px;align-content:start}
+.loc-card h3{font-size:18px;display:flex;align-items:center;gap:8px}
+.field-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+.input{width:100%;min-width:0;min-height:46px;border:0;border-radius:14px;padding:0 14px;font:inherit;font-weight:700;font-size:15px;background:var(--beige-50);color:var(--ink);box-shadow:inset 0 0 0 2px var(--beige-300)}
+.input:focus{outline:none;box-shadow:inset 0 0 0 3px var(--nasa-500)}
+.input[aria-invalid="true"]{box-shadow:inset 0 0 0 3px var(--red-600)}
+.lbl{display:grid;gap:5px;font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);flex:1;min-width:120px}
+.place-list{display:grid;gap:8px}
+.place{border:0;display:flex;align-items:center;gap:10px;text-align:left;background:var(--beige-50);border-radius:14px;padding:10px 12px;box-shadow:inset 0 0 0 2px var(--beige-200);width:100%}
+.place:hover{background:var(--surface-hover);box-shadow:inset 0 0 0 2px var(--nasa-500)}
+.place b{display:block;font-size:14.5px;font-weight:800}
+.place small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.place .pic{width:34px;height:34px;border-radius:11px;background:var(--nasa-100);color:var(--nasa-text);display:grid;place-items:center;flex:none}
+.place.current{box-shadow:inset 0 0 0 3px var(--green-500)}
+.msg{font-size:13px;font-weight:700;color:var(--muted);line-height:1.45;margin:0}
+.msg.err{color:var(--red-text)}
+.presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.levels-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px 16px}
+.where{display:flex;align-items:center;gap:10px;min-width:0;flex:1 1 260px}
+.where .pic{width:40px;height:40px;border-radius:13px;background:var(--nasa-100);color:var(--nasa-text);display:grid;place-items:center;flex:none}
+.where b{display:block;font-size:16px;font-weight:800}
+.where small{display:block;color:var(--muted);font-weight:700;font-size:12.5px}
+.level-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.level{padding:16px;display:flex;flex-direction:column;gap:10px}
+.level-top{display:flex;align-items:center;gap:10px}
+.level .num{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;color:#fff;font-family:var(--font-display);font-size:20px;font-weight:700;flex:none}
+.level h3{font-size:19px;line-height:1.15}
+.level p{margin:0;font-size:13.5px;line-height:1.45;color:var(--muted);font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip-s{font-size:11.5px;font-weight:800;padding:3px 9px;border-radius:99px;background:var(--nasa-100);color:var(--nasa-ink)}
+.level .foot{margin-top:auto;display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.level.locked{opacity:.6}
+.mini-stars{display:flex;gap:2px}
+.mini-stars svg{width:22px;height:22px}
+.mini-stars .star-off{fill:var(--beige-200);stroke:var(--beige-300)}
+.best{font-size:12px;font-weight:800;color:var(--muted)}
+
+/* ---------- Level brief ---------- */
+.brief{padding:22px;display:grid;gap:14px}
+.brief h2{font-size:26px;color:var(--heading)}
+.brief p.story{margin:0;font-size:15px;line-height:1.55;color:var(--muted);font-weight:600}
+.brief h3{font-family:var(--font-body);font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.goal-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.goal-list li{display:flex;gap:8px;align-items:center;font-weight:700;font-size:14px;background:var(--amber-100);border-radius:12px;padding:8px 10px}
+.goal-list li.ok{background:var(--green-100)}
+.goal-list li.no{background:var(--red-100)}
+.goal-list .gi{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;color:#fff;background:var(--amber-500);flex:none}
+.goal-list li.ok .gi{background:var(--green-500)}
+.goal-list li.no .gi{background:var(--red-600)}
+.goal-list em{margin-left:auto;font-style:normal;font-weight:800;white-space:nowrap}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(135px,1fr));gap:8px}
+.kv div{background:var(--beige-100);border-radius:12px;padding:8px 10px}
+.kv small{display:block;font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.kv b{font-family:var(--font-display);font-size:20px;font-weight:600}
+.kv b.up{color:var(--green-text)}
+.kv b.down{color:var(--red-text)}
+.season-rows{display:grid;gap:6px}
+.season-row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-weight:700;font-size:13.5px;background:var(--nasa-100);color:var(--nasa-ink);border-radius:12px;padding:8px 10px}
+.rules{font-size:13px;line-height:1.5;font-weight:600;color:var(--muted);margin:0}
+.brief-foot{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+
+/* ---------- Events, soil, decisions ---------- */
+.events{display:flex;flex-wrap:wrap;gap:6px}
+.ev{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;padding:4px 9px;border-radius:99px}
+.ev.drought,.ev.heat{background:var(--red-100);color:var(--red-text)}
+.ev.downpour{background:var(--nasa-100);color:var(--nasa-text)}
+.ev.waterDeficit{background:var(--amber-100);color:var(--amber-text)}
+.ev.calm{background:var(--green-100);color:var(--green-text)}
+.soil-card{background:var(--soil-100);border-radius:14px;padding:11px 12px;display:grid;gap:7px}
+.soil-card h3{font-family:var(--font-body);font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+.srow{display:grid;grid-template-columns:118px 1fr 34px;gap:8px;align-items:center;font-size:12.5px;font-weight:800}
+.srow span:last-child{text-align:right}
+.srow .bar{margin:0;height:8px;background:var(--surface)}
+.history{display:flex;flex-wrap:wrap;gap:5px;align-items:center;font-size:12px;font-weight:800;color:var(--muted)}
+.history span{background:var(--surface);color:var(--ink);padding:2px 8px;border-radius:99px}
+.method{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.method button{border:0;border-radius:11px;padding:7px 9px;font-weight:800;font-size:12.5px;background:var(--beige-50);box-shadow:inset 0 0 0 2px var(--beige-200);text-align:left;line-height:1.25}
+.method button small{display:block;font-weight:700;color:var(--muted);font-size:11px}
+.method button[aria-pressed="true"]{background:var(--nasa-100);box-shadow:inset 0 0 0 3px var(--nasa-500)}
+.method button:disabled{opacity:.45}
+.missing{font-size:12.5px;font-weight:800;color:var(--amber-ink);background:var(--amber-100);border-radius:11px;padding:8px 10px;display:none;margin:0}
+.missing.show{display:block}
+.crop .tag.warn{background:var(--red-100);color:var(--red-text)}
+.fert .cost small{display:inline;font-size:11px}
+.datum-val b{font-size:26px}
+.datum{padding:10px 12px}
+
+/* ---------- Season report extras ---------- */
+.why{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.why li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.45;font-weight:600}
+.why .pb{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.3px;padding:3px 7px;border-radius:7px;background:var(--nasa-100);color:var(--nasa-text);margin-top:1px;min-width:64px;text-align:center}
+.why .pb.dec{background:var(--beige-200);color:var(--soil-text)}
+.why .imp{margin-left:auto;padding-left:6px;font-family:var(--font-display);font-weight:700;white-space:nowrap}
+.why .imp.down{color:var(--red-text)}
+.why .imp.up{color:var(--green-text)}
+.section-t{font-family:var(--font-body);font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.alt{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--green-100);color:var(--green-ink);border-radius:14px;padding:11px 12px;font-size:13.5px;font-weight:700;line-height:1.45}
+.alt.same{background:var(--beige-100);color:var(--ink)}
+.alt > span{flex:1 1 260px}
+
+/* ---------- What If ---------- */
+.whatif{padding:20px 22px 22px;display:grid;gap:14px}
+.whatif h2{font-size:24px}
+.wi-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.wi-col{border-radius:16px;padding:12px;background:var(--beige-100);display:grid;gap:8px;align-content:start}
+.wi-col.alt-col{background:var(--nasa-100)}
+.wi-col h3{font-size:16px}
+.wi-col p{margin:0;font-weight:700;font-size:13.5px;line-height:1.45}
+.wi-col label{display:grid;gap:3px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
+.wi-col select{width:100%;min-height:40px;border:0;border-radius:11px;padding:0 10px;font:inherit;font-weight:700;font-size:14px;text-transform:none;letter-spacing:0;background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 2px var(--beige-300)}
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse;font-size:13.5px;font-weight:700}
+.table th,.table td{padding:8px;border-bottom:2px dashed var(--beige-200);text-align:right;white-space:nowrap}
+.table th{font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted)}
+.table th:first-child,.table td:first-child{text-align:left;white-space:normal}
+.table td.better{color:var(--green-text);font-weight:800}
+.table td.worse{color:var(--red-text)}
+.note-sm{font-size:12.5px;font-weight:700;color:var(--muted);margin:0;line-height:1.45}
+
+/* ---------- Level result + farm report ---------- */
+.cats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cat{border-radius:16px;padding:12px 8px;background:var(--beige-50);box-shadow:inset 0 0 0 2px var(--beige-200);text-align:center}
+.cat.on{box-shadow:inset 0 0 0 3px #E0B53A}
+.cat svg{width:30px;height:30px}
+.cat .star-off{fill:var(--beige-200);stroke:var(--beige-300)}
+.cat b{display:block;font-family:var(--font-display);font-size:26px;font-weight:600;line-height:1.1}
+.cat small{display:block;font-size:12px;font-weight:800;color:var(--muted);line-height:1.3}
+.provenance{font-size:12.5px;font-weight:700;color:var(--muted);line-height:1.5;margin:0}
+.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,20px);z-index:70;background:var(--tip-bg);color:var(--tip-text);border-radius:14px;padding:10px 14px;font-weight:800;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .25s, transform .25s;display:flex;gap:8px;align-items:center;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.stage[data-state="heatstress"]{--leaf:#C9A04A;--leaf-dark:#93702F;--head:#D1AA60;--head2:#A8653F;--soil:#A9825A;--soil-dark:#8C6743;--soil-line:#98724B;--grass:#C4BA72;--grass-side:#9E934F;--grow:.8;--tilt:-6deg;--cracks:.5}
+.stage[data-state="disease"]{--leaf:#A7B45A;--leaf-dark:#7C6E4A;--head:#B9A77A;--head2:#8E6A55;--grow:.72;--tilt:4deg}
+.stage[data-state="heatstress"] .sway{animation:none}
 
 /* ---------- Responsive ---------- */
 @media (max-width:1439px){
@@ -711,6 +850,17 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.001s!important;animation-iteration-count:1!important;transition-duration:.001s!important}
 }
+@media (max-width:860px){
+  .loc-grid{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  .wi-grid{grid-template-columns:1fr}
+  .cats{gap:6px}
+  .cat b{font-size:21px}
+  .srow{grid-template-columns:96px 1fr 30px}
+  .page-head{padding:16px}
+  .page-head h2{font-size:23px}
+}
 </style>
 </head>
 <body>
@@ -723,19 +873,19 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
       <div class="planet"></div>
       <div class="sat" data-ic="satellite-color"></div>
     </div>
-    <h1 data-i18n="loading.title">Tuning in to Earth orbit…</h1>
-    <p data-i18n="loading.text">Downloading this season's satellite observations for your farm.</p>
+    <h1 data-i18n="loading.title">Tuning in to NASA POWER…</h1>
+    <p id="loading-text"></p>
     <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" data-i18n-attr="aria-label:loading.progress"><i id="boot-bar"></i></div>
     <ul class="boot-steps" id="boot-steps">
-      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.temperature">Air temperature</span><small>NASA POWER</small></li>
-      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.rainfall">Rainfall</span><small>GPM IMERG</small></li>
-      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.soil">Soil moisture</span><small>SMAP</small></li>
-      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.vegetation">Vegetation health</span><small>MODIS NDVI</small></li>
+      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.temperature">Air temperature</span><small>T2M</small></li>
+      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.rainfall">Rainfall</span><small>PRECTOTCORR</small></li>
+      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.air">Humidity and wind</span><small>RH2M · WS2M</small></li>
+      <li><span class="dot" data-ic="check"></span><span data-i18n="loading.step.solar">Solar radiation</span><small>ALLSKY_SFC_SW_DWN</small></li>
     </ul>
   </div>
 </section>
 
-<!-- ================= ERROR ================= -->
+<!-- ================= ERROR / OFFLINE ================= -->
 <section id="scr-error" class="center-screen" aria-live="assertive">
   <div class="boot err">
     <div class="orbit">
@@ -744,20 +894,93 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
       <div class="sat" data-ic="satellite-color"></div>
       <div class="err-badge">!</div>
     </div>
-    <h1 data-i18n="error.title">Signal lost</h1>
-    <p data-i18n="error.text">We couldn't download NASA data for this season. Your farm progress is safe — nothing was planted yet.</p>
-    <span class="err-code" data-i18n="error.code">Data server timed out · code 504</span>
+    <h1 id="err-title"></h1>
+    <p id="err-text"></p>
+    <span class="err-code" id="err-code"></span>
     <div class="boot-actions">
-      <button class="btn btn-nasa btn-lg" id="btn-retry"><span data-ic="refresh"></span><span data-i18n="actions.retry">Try again</span></button>
-      <button class="btn btn-lg" id="btn-offline"><span data-ic="map"></span><span data-i18n="actions.sampleData">Play with sample data</span></button>
+      <button class="btn btn-nasa btn-lg" id="btn-retry" type="button"><span data-ic="refresh"></span><span data-i18n="actions.retry">Try again</span></button>
+      <button class="btn btn-lg" id="btn-demo" type="button"><span data-ic="map"></span><span data-i18n="actions.sampleData">Play with demo data</span></button>
+      <button class="btn btn-lg btn-ghost" id="btn-err-location" type="button"><span data-ic="pin"></span><span data-i18n="actions.changeLocation">Change location</span></button>
     </div>
   </div>
 </section>
 
+<!-- ================= LOCATION ================= -->
+<main id="scr-location" class="screen">
+  <div class="page">
+    <header class="topbar card">
+      <div class="brand"><div class="brand-mark" data-ic="logo"></div><div><h1>Farm Navigator</h1><span data-i18n="brand.tagline">Powered by NASA Earth data</span></div></div>
+      <div class="top-actions">
+        <div class="prefs prefs-desktop" data-prefs="compact"></div>
+        <button class="btn btn-icon menu-btn" type="button" data-menu-toggle aria-controls="menu-location" aria-expanded="false"></button>
+      </div>
+      <div class="mobile-menu" id="menu-location" data-prefs="menu"></div>
+    </header>
+    <section class="card page-head">
+      <h2 data-i18n="location.title">Where is your farm?</h2>
+      <p data-i18n="location.text">Pick a real place. The game downloads the last 10 growing seasons recorded there by NASA POWER and replays them as levels.</p>
+    </section>
+    <div class="loc-grid">
+      <section class="card loc-card" aria-labelledby="loc-search-title">
+        <h3 id="loc-search-title"><span data-ic="search"></span><span data-i18n="location.searchTitle">Find a city</span></h3>
+        <form class="field-row" id="loc-search" novalidate>
+          <label class="lbl"><span data-i18n="location.searchLabel">City or place</span>
+            <input class="input" id="loc-q" name="q" autocomplete="off" minlength="2" maxlength="80" data-i18n-attr="placeholder:location.searchPlaceholder">
+          </label>
+          <button class="btn btn-nasa" type="submit" id="loc-search-btn"><span data-ic="search"></span><span data-i18n="location.search">Search</span></button>
+        </form>
+        <p class="msg" id="loc-msg" role="status"></p>
+        <div class="place-list" id="loc-results"></div>
+        <h3><span data-ic="map"></span><span data-i18n="location.presetsTitle">Or start from an example farm</span></h3>
+        <div class="presets" id="loc-presets"></div>
+      </section>
+      <section class="card loc-card" aria-labelledby="loc-manual-title">
+        <h3 id="loc-manual-title"><span data-ic="pin"></span><span data-i18n="location.manualTitle">Enter coordinates</span></h3>
+        <form id="loc-manual" class="field-row" novalidate>
+          <label class="lbl"><span data-i18n="location.latitude">Latitude</span>
+            <input class="input" id="loc-lat" inputmode="decimal" autocomplete="off" placeholder="43.25"></label>
+          <label class="lbl"><span data-i18n="location.longitude">Longitude</span>
+            <input class="input" id="loc-lon" inputmode="decimal" autocomplete="off" placeholder="76.91"></label>
+          <button class="btn btn-primary" type="submit" data-i18n="location.use">Use</button>
+        </form>
+        <p class="msg" id="loc-manual-msg" role="status" data-i18n="location.manualHint">Latitude −90…90, longitude −180…180 (decimal degrees).</p>
+        <div id="loc-current"></div>
+        <p class="provenance" data-i18n-html="location.note"></p>
+      </section>
+    </div>
+  </div>
+</main>
+
+<!-- ================= LEVEL SELECT ================= -->
+<main id="scr-levels" class="screen">
+  <div class="page">
+    <header class="topbar card">
+      <div class="brand"><div class="brand-mark" data-ic="logo"></div><div><h1>Farm Navigator</h1><span data-i18n="brand.tagline">Powered by NASA Earth data</span></div></div>
+      <div class="top-actions">
+        <div class="prefs prefs-desktop" data-prefs="compact"></div>
+        <button class="btn btn-icon" id="btn-help-levels" type="button" data-i18n-attr="aria-label:header.help;title:header.help"><span data-ic="help"></span></button>
+        <button class="btn btn-icon menu-btn" type="button" data-menu-toggle aria-controls="menu-levels" aria-expanded="false"></button>
+      </div>
+      <div class="mobile-menu" id="menu-levels" data-prefs="menu"></div>
+    </header>
+    <section class="card levels-bar">
+      <div class="where"><span class="pic" data-ic="pin"></span><div><b id="lv-place"></b><small id="lv-coords"></small></div></div>
+      <span id="lv-status"></span>
+      <button class="btn" id="btn-refresh" type="button"><span data-ic="refresh"></span><span data-i18n="actions.refresh">Refresh data</span></button>
+      <button class="btn" id="btn-change-location" type="button"><span data-ic="pin"></span><span data-i18n="actions.changeLocation">Change location</span></button>
+    </section>
+    <section class="card page-head">
+      <h2 data-i18n="levels.title">Seven seasons to master</h2>
+      <p id="lv-intro"></p>
+    </section>
+    <div class="level-grid" id="level-grid"></div>
+    <div class="final-actions"><button class="btn btn-lg" id="btn-farm-report" type="button"><span data-ic="trophy"></span><span data-i18n="farm.open">Farm report</span></button></div>
+  </div>
+</main>
+
 <!-- ================= GAME ================= -->
 <main id="scr-game" class="screen">
   <div class="game">
-    <!-- Top -->
     <header class="topbar card">
       <div class="brand">
         <div class="brand-mark" data-ic="logo"></div>
@@ -766,16 +989,16 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
       <div class="season-pill">
         <div class="season-emoji" id="season-ic"></div>
         <div><b id="season-name"></b><small id="season-count"></small></div>
-        <div class="season-dots" id="season-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        <div class="season-dots" id="season-dots" aria-hidden="true"></div>
       </div>
       <div class="mission">
         <div class="mission-flag" data-ic="flag"></div>
-        <div><small data-i18n="header.mission">Current mission</small><b id="mission-text"></b></div>
+        <div><small data-i18n="header.mission">Level goal</small><b id="mission-text"></b></div>
       </div>
       <div class="top-actions">
         <div class="prefs prefs-desktop" data-prefs="compact"></div>
-        <button class="btn btn-icon" id="btn-help" data-i18n-attr="aria-label:header.help;title:header.help"><span data-ic="help"></span></button>
-        <button class="btn btn-icon" id="btn-pause" data-i18n-attr="aria-label:header.pause;title:header.pauseShort"><span data-ic="pause"></span></button>
+        <button class="btn btn-icon" id="btn-help" type="button" data-i18n-attr="aria-label:header.help;title:header.help"><span data-ic="help"></span></button>
+        <button class="btn btn-icon" id="btn-pause" type="button" data-i18n-attr="aria-label:header.pause;title:header.pauseShort"><span data-ic="pause"></span></button>
         <button class="btn btn-icon menu-btn" type="button" data-menu-toggle aria-controls="menu-game" aria-expanded="false"></button>
       </div>
       <div class="mobile-menu" id="menu-game" data-prefs="menu"></div>
@@ -794,19 +1017,24 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
       <div>
         <p class="group-label"><span data-i18n="decisions.irrigation">2 · Irrigation</span> <em id="reserve-note"></em></p>
         <div class="seg" id="irr-seg" role="group" data-i18n-attr="aria-label:decisions.irrigationGroup"></div>
+        <div class="method" id="irr-method" role="group" data-i18n-attr="aria-label:decisions.methodGroup"></div>
         <p class="hint" id="irr-hint"></p>
       </div>
       <div>
         <p class="group-label" data-i18n="decisions.fertilizer">3 · Fertilizer</p>
         <div class="fert-list" id="fert-list" role="group" data-i18n-attr="aria-label:decisions.fertilizerGroup"></div>
       </div>
+      <div>
+        <p class="group-label"><span data-i18n="decisions.protection">4 · Soil protection</span> <em data-i18n="decisions.optional">optional</em></p>
+        <div class="fert-list" id="prot-list" role="group" data-i18n-attr="aria-label:decisions.protectionGroup"></div>
+      </div>
       <div class="plan-sum" id="plan-sum"></div>
-      <p class="warn-line" id="warn-line" data-i18n="plan.noBudget">Not enough budget for this plan.</p>
-      <button class="btn btn-primary btn-lg confirm" id="btn-confirm"></button>
+      <p class="missing" id="missing" role="status"></p>
+      <button class="btn btn-primary btn-lg confirm" id="btn-confirm" type="button"></button>
     </aside>
 
     <!-- Center: field -->
-    <section class="stage card" id="stage" data-state="planning" data-weather="showers" data-i18n-attr="aria-label:field.aria">
+    <section class="stage card" id="stage" data-state="planning" data-weather="clear" data-i18n-attr="aria-label:field.aria">
       <div class="weather" aria-hidden="true">
         <div class="sun"></div>
         <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
@@ -820,12 +1048,12 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
         </div>
         <div class="wx" id="wx-chip"></div>
         <div class="view-toggle" role="group" data-i18n-attr="aria-label:field.view">
-          <button aria-pressed="true" id="view-farm"><span data-ic="sprout"></span><span data-i18n="field.farm">Farm</span></button>
-          <button aria-pressed="false" id="view-sat" class="sat-btn"><span data-ic="satellite"></span><span data-i18n="field.satellite">Satellite NDVI</span></button>
+          <button aria-pressed="true" id="view-farm" type="button"><span data-ic="sprout"></span><span data-i18n="field.farm">Farm</span></button>
+          <button aria-pressed="false" id="view-sat" class="sat-btn" type="button"><span data-ic="ndvi"></span><span data-i18n="field.ndvi">NDVI (model)</span></button>
         </div>
       </div>
       <div class="field-wrap"><svg class="fieldsvg" id="field" viewBox="0 0 600 385" role="img" data-i18n-attr="aria-label:field.image"></svg></div>
-      <div class="ndvi-legend" aria-hidden="true">NDVI <span>0.1</span><i></i><span>0.9</span></div>
+      <div class="ndvi-legend" aria-hidden="true"><span data-i18n="field.ndviLegend">Simulated NDVI</span> <span>0.1</span><i></i><span>0.9</span></div>
       <div class="banner" id="banner"><div class="banner-card" id="banner-card"></div></div>
     </section>
 
@@ -833,10 +1061,13 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
     <aside class="panel card right" data-i18n-attr="aria-label:nasa.title">
       <div class="nasa-head">
         <div data-ic="satellite-white"></div>
-        <div><h2 data-i18n="nasa.title">NASA Data</h2><p id="nasa-sub"></p></div>
+        <div><h2 data-i18n="nasa.title">NASA POWER</h2><p id="nasa-sub"></p></div>
+        <span id="nasa-status"></span>
       </div>
+      <div class="events" id="events"></div>
       <div class="data-list" id="data-list"></div>
       <div class="insight" id="insight"></div>
+      <div class="soil-card" id="soil-card"></div>
       <div class="obs" id="obs"></div>
     </aside>
 
@@ -845,14 +1076,11 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   </div>
 </main>
 
-<!-- ================= FINAL ================= -->
+<!-- ================= LEVEL RESULT ================= -->
 <main id="scr-final" class="screen">
   <div class="final">
     <header class="topbar card final-top">
-      <div class="brand">
-        <div class="brand-mark" data-ic="logo"></div>
-        <div><h1>Farm Navigator</h1><span data-i18n="brand.tagline">Powered by NASA Earth data</span></div>
-      </div>
+      <div class="brand"><div class="brand-mark" data-ic="logo"></div><div><h1>Farm Navigator</h1><span data-i18n="brand.tagline">Powered by NASA Earth data</span></div></div>
       <div class="top-actions">
         <div class="prefs prefs-desktop" data-prefs="compact"></div>
         <button class="btn btn-icon menu-btn" type="button" data-menu-toggle aria-controls="menu-final" aria-expanded="false"></button>
@@ -863,8 +1091,25 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   </div>
 </main>
 
+<!-- ================= FARM REPORT ================= -->
+<main id="scr-farm" class="screen">
+  <div class="final">
+    <header class="topbar card final-top">
+      <div class="brand"><div class="brand-mark" data-ic="logo"></div><div><h1>Farm Navigator</h1><span data-i18n="brand.tagline">Powered by NASA Earth data</span></div></div>
+      <div class="top-actions">
+        <div class="prefs prefs-desktop" data-prefs="compact"></div>
+        <button class="btn btn-icon menu-btn" type="button" data-menu-toggle aria-controls="menu-farm" aria-expanded="false"></button>
+      </div>
+      <div class="mobile-menu" id="menu-farm" data-prefs="menu"></div>
+    </header>
+    <div id="farm"></div>
+  </div>
+</main>
+
 <!-- ================= OVERLAYS ================= -->
+<div class="overlay" id="ov-level" role="dialog" aria-modal="true" aria-labelledby="brief-title"><div class="modal"><div class="brief" id="brief"></div></div></div>
 <div class="overlay" id="ov-report" role="dialog" aria-modal="true" aria-labelledby="rep-title"><div class="modal" id="report"></div></div>
+<div class="overlay" id="ov-whatif" role="dialog" aria-modal="true" aria-labelledby="wi-title"><div class="modal" style="width:min(760px,100%)"><div class="whatif" id="whatif"></div></div></div>
 <div class="overlay" id="ov-tut" role="dialog" aria-modal="true" aria-labelledby="tut-title"><div class="modal"><div class="tut" id="tut"></div></div></div>
 <div class="overlay" id="ov-pause" role="dialog" aria-modal="true" aria-labelledby="pause-title">
   <div class="modal pause">
@@ -872,42 +1117,22 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
     <h2 id="pause-title" data-i18n="pause.title">Paused</h2>
     <p data-i18n="pause.text">Your field will wait. Satellites keep orbiting.</p>
     <div class="stack">
-      <button class="btn btn-primary btn-lg" id="btn-resume"><span data-ic="play"></span><span data-i18n="actions.resume">Resume</span></button>
-      <button class="btn btn-lg" id="btn-pause-help"><span data-ic="help"></span><span data-i18n="header.help">How to play</span></button>
-      <button class="btn btn-lg btn-ghost" id="btn-restart"><span data-ic="refresh"></span><span data-i18n="actions.restart">Restart farm</span></button>
+      <button class="btn btn-primary btn-lg" id="btn-resume" type="button"><span data-ic="play"></span><span data-i18n="actions.resume">Resume</span></button>
+      <button class="btn btn-lg" id="btn-pause-help" type="button"><span data-ic="help"></span><span data-i18n="header.help">How to play</span></button>
+      <button class="btn btn-lg" id="btn-pause-levels" type="button"><span data-ic="grid"></span><span data-i18n="actions.levels">All levels</span></button>
+      <button class="btn btn-lg btn-ghost" id="btn-restart" type="button"><span data-ic="refresh"></span><span data-i18n="actions.restartLevel">Restart level</span></button>
     </div>
   </div>
 </div>
-
-<!-- Design review dock -->
-<div class="dock" id="dock">
-  <div class="dock-menu" id="dock-menu">
-    <h5 data-i18n="dock.screens">Screens</h5>
-    <button data-go="loading" data-i18n="dock.loading">Loading</button>
-    <button data-go="error" data-i18n="dock.error">Error</button>
-    <button data-go="tutorial" data-i18n="dock.tutorial">Tutorial</button>
-    <button data-go="game" data-i18n="dock.game">Game dashboard</button>
-    <button data-go="final-win" data-i18n="dock.finalWin">Final score · success</button>
-    <button data-go="final-fail" data-i18n="dock.finalFail">Final score · failed</button>
-    <h5 data-i18n="dock.fieldStates">Field states</h5>
-    <button data-go="healthy" data-i18n="states.healthy">Healthy crops</button>
-    <button data-go="drought" data-i18n="states.drought">Drought stress</button>
-    <button data-go="overwater" data-i18n="states.overwater">Overwatering</button>
-    <button data-go="lownutrients" data-i18n="states.lownutrients">Low soil nutrients</button>
-    <button data-go="harvest" data-i18n="states.harvest">Successful harvest</button>
-    <button data-go="failed" data-i18n="states.failed">Failed harvest</button>
-    <button data-go="report" data-i18n="dock.report">Season report</button>
-  </div>
-  <button class="dock-btn" id="dock-btn" aria-expanded="false" aria-controls="dock-menu"><span data-ic="grid"></span><span data-i18n="dock.toggle">Design states</span></button>
-</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ================= TRANSLATIONS =================
      One JSON block per language. Keys must match across languages
-     (checked by scripts/frontend.test.mjs). {{name}} = interpolation. -->
+     (checked by tests/i18n.test.mjs). {{name}} = interpolation. -->
 <script type="application/json" id="i18n-en">
 {
   "meta.title": "Farm Navigator",
-  "meta.description": "An educational farming strategy game about using NASA Earth data for sustainable decisions.",
+  "meta.description": "An educational farming strategy game: read real NASA POWER data and make sustainable decisions.",
   "brand.tagline": "Powered by NASA Earth data",
 
   "language.label": "Language",
@@ -925,52 +1150,184 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   "menu.open": "Open settings menu",
   "menu.close": "Close settings menu",
 
-  "loading.title": "Tuning in to Earth orbit…",
-  "loading.text": "Downloading this season's satellite observations for your farm.",
-  "loading.progress": "Loading NASA data",
+  "dir.N": "N",
+  "dir.S": "S",
+  "dir.E": "E",
+  "dir.W": "W",
+  "units.points": "{{n}} pts",
+  "units.kgN": "{{n}} kg N",
+  "months.north": "May–Aug",
+  "months.south": "Nov–Feb",
+  "period.demo": "Demo season {{n}} (illustrative)",
+  "period.demoShort": "Demo {{n}}",
+
+  "status.live": "Live · NASA POWER",
+  "status.cached": "Cached · {{date}}",
+  "status.stale": "Cached copy · {{date}}",
+  "status.demo": "Demo data",
+  "status.liveHint": "Downloaded from NASA POWER just now through the game server.",
+  "status.cachedHint": "Real NASA POWER data served from the server or browser cache.",
+  "status.demoHint": "Illustrative values, not measurements of any real place or year.",
+
+  "loading.title": "Tuning in to NASA POWER…",
+  "loading.text": "Downloading 10 past growing seasons for {{place}}.",
+  "loading.progress": "Loading NASA POWER data",
   "loading.step.temperature": "Air temperature",
   "loading.step.rainfall": "Rainfall",
-  "loading.step.soil": "Soil moisture",
-  "loading.step.vegetation": "Vegetation health",
-  "error.title": "Signal lost",
-  "error.text": "We couldn't download NASA data for this season. Your farm progress is safe — nothing was planted yet.",
-  "error.code": "Data server timed out · code 504",
+  "loading.step.air": "Humidity and wind",
+  "loading.step.solar": "Solar radiation",
+
+  "error.offline.title": "You're offline",
+  "error.offline.text": "There is no internet connection and no saved NASA data for this farm yet. Reconnect and try again, or play with clearly labelled demo data.",
+  "error.offline.short": "offline",
+  "error.timeout.title": "NASA POWER is taking too long",
+  "error.timeout.text": "The data request timed out. NASA POWER is sometimes busy — try again in a moment, or play with demo data.",
+  "error.timeout.short": "request timed out",
+  "error.nasa.title": "Signal lost",
+  "error.nasa.text": "The game server could not get data from NASA POWER right now. Try again, choose another location or play with demo data.",
+  "error.nasa.short": "NASA POWER unavailable",
+  "error.server.title": "Server not reachable",
+  "error.server.text": "The game server did not answer. Check your connection and try again.",
+  "error.server.short": "server not reachable",
+  "error.no-backend.title": "Game server not running",
+  "error.no-backend.text": "NASA data are loaded through the game's server, which is not available here (for example when the page is opened as a file). Start it with “uvicorn app.main:app”, or play with demo data.",
+  "error.no-backend.short": "no game server",
+  "error.invalid.title": "Unexpected data",
+  "error.invalid.text": "The server answered, but the data did not look like NASA POWER seasons. Try again or play with demo data.",
+  "error.invalid.short": "unexpected data",
+  "error.code": "Reason: {{kind}} · {{status}}",
 
   "actions.retry": "Try again",
-  "actions.sampleData": "Play with sample data",
-  "actions.confirmGrow": "Confirm & grow {{seasonLower}}",
+  "actions.sampleData": "Play with demo data",
+  "actions.changeLocation": "Change location",
+  "actions.continue": "Continue",
+  "actions.refresh": "Refresh data",
+  "actions.loadNasa": "Load NASA data",
+  "actions.play": "Play",
+  "actions.replay": "Play again",
+  "actions.startLevel": "Start level",
+  "actions.confirmGrow": "Plant season {{season}}",
   "actions.inProgress": "Season in progress…",
-  "actions.harvest": "Bring in the harvest",
+  "actions.levelOver": "Level finished",
   "actions.nextSeason": "Next season",
-  "actions.seeScore": "See final score",
-  "actions.playAgain": "Play again",
-  "actions.reviewTutorial": "Review how to play",
+  "actions.finishLevel": "Finish level",
+  "actions.seeResult": "See result",
+  "actions.whatIf": "What if…?",
+  "actions.backToReport": "Back to report",
+  "actions.nextLevel": "Level {{n}}",
+  "actions.levels": "All levels",
   "actions.skip": "Skip",
   "actions.back": "Back",
   "actions.next": "Next",
-  "actions.startFarming": "Start farming",
+  "actions.startFarming": "Let's farm",
   "actions.resume": "Resume",
-  "actions.restart": "Restart farm",
+  "actions.restartLevel": "Restart level",
 
-  "header.mission": "Current mission",
+  "header.mission": "Level goal",
   "header.help": "How to play",
   "header.pause": "Pause game",
   "header.pauseShort": "Pause",
+  "confirm.leave": "Leave this level? Seasons played in this attempt will be lost.",
 
-  "season.title": "{{name}} {{year}}",
-  "season.count": "Season {{n}} of 3",
-  "seasons.spring.name": "Spring",
-  "seasons.spring.period": "Mar 1 – May 31, 2026",
-  "seasons.spring.mission": "Establish a healthy crop without wasting water",
-  "seasons.spring.insight": "Soil is already moist and rain is near normal. Most crops won't need much extra water this spring.",
-  "seasons.summer.name": "Summer",
-  "seasons.summer.period": "Jun 1 – Aug 31, 2026",
-  "seasons.summer.mission": "Keep your field alive through a heatwave",
-  "seasons.summer.insight": "Rain is 70% below normal and topsoil is dry. Heat raises crop water demand. Choose drought‑tolerant crops or irrigate.",
-  "seasons.autumn.name": "Autumn",
-  "seasons.autumn.period": "Sep 1 – Nov 30, 2026",
-  "seasons.autumn.mission": "Finish strong and protect your soil",
-  "seasons.autumn.insight": "A wet autumn: rain is 30% above normal and soil is moist. Extra irrigation or quick‑release fertilizer could wash away.",
+  "location.title": "Where is your farm?",
+  "location.text": "Pick a real place. The game downloads the last 10 growing seasons recorded there by NASA POWER and replays them as levels.",
+  "location.searchTitle": "Find a city",
+  "location.searchLabel": "City or place",
+  "location.searchPlaceholder": "e.g. Almaty, Kansas City, Nairobi",
+  "location.search": "Search",
+  "location.searching": "Searching for “{{q}}”…",
+  "location.found": "{{n}} places found — pick one.",
+  "location.none": "No places found for “{{q}}”. Check the spelling or enter coordinates.",
+  "location.tooShort": "Type at least 2 letters.",
+  "location.err.offline": "You're offline, so the city search is unavailable. Pick an example farm or enter coordinates.",
+  "location.err.timeout": "The city search timed out. Try again, or enter coordinates.",
+  "location.err.nasa": "The city search service is unavailable. Enter coordinates instead.",
+  "location.err.server": "The city search service is unavailable. Enter coordinates instead.",
+  "location.err.no-backend": "City search needs the game server. Pick an example farm or enter coordinates.",
+  "location.err.invalid": "The city search returned unexpected data. Enter coordinates instead.",
+  "location.presetsTitle": "Or start from an example farm",
+  "location.manualTitle": "Enter coordinates",
+  "location.latitude": "Latitude",
+  "location.longitude": "Longitude",
+  "location.use": "Use",
+  "location.manualHint": "Latitude −90…90, longitude −180…180 (decimal degrees).",
+  "location.invalid": "Enter a latitude between −90 and 90 and a longitude between −180 and 180.",
+  "location.current": "Current farm",
+  "location.custom": "Farm at {{coords}}",
+  "location.note": "<strong>About the data:</strong> NASA POWER gives regional values for a grid cell tens of kilometres wide, built from satellites and climate models. They describe <strong>past seasons</strong>, not a weather forecast.",
+  "places.kansas": "Salina, Kansas, USA",
+  "places.kansas.note": "Great Plains wheat belt",
+  "places.almaty": "Almaty region, Kazakhstan",
+  "places.almaty.note": "Semi-arid foothills",
+  "places.kyiv": "Kyiv, Ukraine",
+  "places.kyiv.note": "Black soil plains",
+  "places.delhi": "Delhi, India",
+  "places.delhi.note": "Hot monsoon climate",
+  "places.nairobi": "Nairobi, Kenya",
+  "places.nairobi.note": "Tropical highlands",
+  "places.pergamino": "Pergamino, Argentina",
+  "places.pergamino.note": "Pampas, southern hemisphere",
+
+  "levels.title": "Seven seasons to master",
+  "levels.intro": "Each level replays real past seasons from your farm's NASA POWER record — a typical year, the driest, the hottest, the wettest. Finish a level to unlock the next one.",
+  "levels.seasons": "growing seasons {{months}} {{from}}–{{to}}",
+  "levels.demoPlace": "Demo farm (illustrative data)",
+  "levels.demoNote": "Demo values are not tied to any real location or year.",
+  "levels.difficulty": "Difficulty {{n}} of 7",
+  "levels.locked": "Locked",
+  "levels.unlockHint": "Pass level {{n}} to unlock.",
+  "levels.best": "Best score {{score}}",
+  "levels.notPassed": "Not passed yet · best {{score}}",
+  "levels.starsAria": "{{n}} of 3 stars",
+  "levels.firstHarvest.name": "First Harvest",
+  "levels.firstHarvest.short": "Learn the basics: choose a crop, irrigation and fertilizer for a typical season.",
+  "levels.firstHarvest.story": "You have just taken over a small farm. This season is the most typical one in the last ten years. Read the NASA POWER data, then plan the crop, water and fertilizer.",
+  "levels.waterShortage.name": "Water Shortage",
+  "levels.waterShortage.short": "The reservoir is only a third full — in the driest season on record.",
+  "levels.waterShortage.story": "The reservoir is only 35% full and this is the driest season of the last ten years. Every drop counts: pick a crop that copes with little water and irrigate only where it pays off.",
+  "levels.depletedSoil.name": "Depleted Soil",
+  "levels.depletedSoil.short": "Years of wheat monoculture wore the soil out. Rebuild nitrogen with rotation.",
+  "levels.depletedSoil.story": "The previous owner grew wheat on the same field again and again. Nitrogen and organic matter are very low. Over two seasons, rebuild the soil with legumes, compost and smart rotation — while still harvesting something.",
+  "levels.heatwave.name": "Heatwave",
+  "levels.heatwave.short": "The hottest season of the decade. Choose a crop that can take the heat.",
+  "levels.heatwave.story": "NASA POWER shows this was the hottest growing season in your area in ten years. Hot, dry air makes crops thirsty and heat-sensitive plants suffer. Choose a heat-tolerant crop and manage water wisely.",
+  "levels.rainySeason.name": "Season of Downpours",
+  "levels.rainySeason.short": "The wettest season on record: protect the soil from erosion and nutrient loss.",
+  "levels.rainySeason.story": "This is the wettest season in ten years, with many heavy-rain days. Bare soil washes away and fast fertilizer leaches out of reach of the roots. Keep the soil covered and the nitrogen in the field.",
+  "levels.economicCrisis.name": "Economic Crisis",
+  "levels.economicCrisis.short": "Only $2,200 to start. Make a profit over two seasons.",
+  "levels.economicCrisis.story": "Prices went up and the bank cut your credit: you start with only $2,200. Over the two most recent seasons, earn enough to finish with at least $3,000. Expensive inputs only pay off if the harvest does.",
+  "levels.climateChallenge.name": "Climate Challenge",
+  "levels.climateChallenge.short": "Drought, heat and downpours — three extreme seasons in a row.",
+  "levels.climateChallenge.story": "The final test: the driest, the hottest and the wettest seasons of the decade, back to back. Keep yields up, don't lose money and leave the soil at least as healthy as you found it.",
+
+  "pick.typical": "typical season",
+  "pick.driest": "driest season",
+  "pick.hottest": "hottest season",
+  "pick.wettest": "wettest season",
+  "pick.recent": "recent season",
+
+  "goal.avgYield": "Average yield at least {{value}}",
+  "goal.minYield": "No season below {{value}} yield",
+  "goal.reserveEnd": "Keep at least {{value}} in the water reserve",
+  "goal.fertilityDelta": "Improve soil fertility by {{value}} or more",
+  "goal.erosionDelta": "Soil erosion rises by no more than {{value}}",
+  "goal.nLeached": "Lose no more than {{value}} to leaching",
+  "goal.finalBudget": "Finish with at least {{value}}",
+
+  "brief.eyebrow": "Level {{n}} of {{total}}",
+  "brief.goal": "Goal",
+  "brief.seasons": "Real seasons you will play ({{n}})",
+  "brief.start": "You start with",
+  "brief.previous": "Previous crops",
+  "brief.winLabel": "Win:",
+  "brief.win": "meet every goal by the end of the last season.",
+  "brief.loseLabel": "Lose:",
+  "brief.lose": "miss a goal, or end a season with less than {{min}} — not enough to buy seed.",
+  "brief.demo": "You are playing with demo data: seasons are illustrative, not real records.",
+
+  "game.levelTitle": "Level {{n}} · {{name}}",
+  "game.seasonCount": "Season {{n}} of {{total}} · {{season}}",
 
   "decisions.title": "Your decisions",
   "decisions.subtitle": "Read the data, then plan the season",
@@ -978,56 +1335,86 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   "decisions.cropGroup": "Crop",
   "decisions.irrigation": "2 · Irrigation",
   "decisions.irrigationGroup": "Irrigation level",
+  "decisions.methodGroup": "Irrigation method",
   "decisions.fertilizer": "3 · Fertilizer",
   "decisions.fertilizerGroup": "Fertilizer",
-  "decisions.likes": "Likes {{min}}–{{max}}°C",
+  "decisions.protection": "4 · Soil protection",
+  "decisions.protectionGroup": "Soil protection",
+  "decisions.optional": "optional",
+  "decisions.likes": "Likes {{min}}–{{max}} °C",
+  "decisions.lastCrop": "Last season: {{crop}}",
   "decisions.reserve": "Reserve {{pct}}%",
   "decisions.waterNeed": "Water need {{n}} of 3",
+  "decisions.tagRepeat": "Same as last season",
+  "decisions.tagLegumeCredit": "Legume credit",
+  "decisions.missing": "Still to choose: {{list}}.",
+  "decisions.missing.crop": "a crop",
+  "decisions.missing.irrigation": "irrigation",
+  "decisions.missing.fertilizer": "fertilizer",
 
   "crops.wheat.name": "Wheat",
   "crops.wheat.tag": "Cool season",
   "crops.maize.name": "Maize",
-  "crops.maize.tag": "High value",
+  "crops.maize.tag": "High value, thirsty",
   "crops.sorghum.name": "Sorghum",
-  "crops.sorghum.tag": "Drought tolerant",
+  "crops.sorghum.tag": "Heat & drought tolerant",
   "crops.chickpea.name": "Chickpea",
-  "crops.chickpea.tag": "Fixes nitrogen",
+  "crops.chickpea.tag": "Legume, fixes N",
 
   "irrigation.off": "Off",
   "irrigation.low": "Low",
   "irrigation.medium": "Medium",
   "irrigation.high": "High",
+  "irrigation.hintChoose": "Choose how much to irrigate — “Off” is a valid choice.",
   "irrigation.hintNone": "No extra water — the crop relies on <b>rain + stored soil water</b>.",
-  "irrigation.hintAdds": "Adds <b>~{{mm}} mm</b> of water · uses <b>{{pct}}%</b> of your reserve",
-  "irrigation.heat": " (heat increases evaporation)",
+  "irrigation.hintAdds": "Delivers <b>~{{mm}} mm</b> to the roots · uses <b>{{pts}}</b> reserve points · {{loss}}% lost to evaporation",
+  "methods.sprinkler.name": "Sprinkler",
+  "methods.sprinkler.desc": "No extra cost; loses more water in heat and wind",
+  "methods.drip.name": "Drip",
+  "methods.drip.desc": "+{{cost}}; uses 35% less reserve",
 
   "fertilizers.none.name": "None",
   "fertilizers.none.desc": "Rely on soil nitrogen",
   "fertilizers.compost.name": "Compost",
-  "fertilizers.compost.desc": "Slow release, feeds soil life",
+  "fertilizers.compost.desc": "Slow release, builds organic matter",
   "fertilizers.synthetic.name": "Synthetic N",
-  "fertilizers.synthetic.desc": "Fast boost, can wash away",
-  "fertilizers.green.name": "Legume green manure",
-  "fertilizers.green.desc": "Plowed-in cover crop",
+  "fertilizers.synthetic.desc": "Fast boost, washes out in heavy rain",
+  "fertilizers.green.name": "Green manure",
+  "fertilizers.green.desc": "Plowed-in legume cover crop",
   "fertilizers.free": "Free",
+  "protection.none.name": "No protection",
+  "protection.none.desc": "Bare soil between rows",
+  "protection.mulch.name": "Mulch",
+  "protection.mulch.desc": "Straw cover: less evaporation and runoff",
+  "protection.cover.name": "Cover strips",
+  "protection.cover.desc": "Grass strips: best against erosion",
 
   "plan.seeds": "Seeds · {{crop}}",
   "plan.irrigation": "Irrigation · {{level}}",
   "plan.fertilizer": "Fertilizer · {{name}}",
+  "plan.protection": "Protection · {{name}}",
   "plan.total": "Season cost",
+  "plan.budgetLeft": "Budget after costs",
   "plan.noBudget": "Not enough budget for this plan.",
+  "plan.noReserve": "Not enough water in the reserve for this irrigation.",
+
+  "describe.irrigation": "{{level}} irrigation",
+  "describe.noIrrigation": "no irrigation",
+  "describe.noFertilizer": "no fertilizer",
 
   "states.planning": "Ready to plant",
-  "states.healthy": "Healthy crops",
+  "states.healthy": "Healthy crop",
   "states.drought": "Drought stress",
-  "states.overwater": "Overwatering",
-  "states.lownutrients": "Low soil nutrients",
-  "states.harvest": "Successful harvest",
-  "states.failed": "Failed harvest",
+  "states.heatstress": "Heat stress",
+  "states.overwater": "Waterlogging",
+  "states.lownutrients": "Low nitrogen",
+  "states.disease": "Disease pressure",
+  "states.harvest": "Level complete",
+  "states.failed": "Level failed",
 
   "weather.showers": "Mild · light showers",
-  "weather.heat": "Heatwave · dry",
-  "weather.rain": "Wet · frequent rain",
+  "weather.heat": "Hot and dry",
+  "weather.rain": "Wet · heavy rain",
   "weather.clear": "Clear skies",
   "weather.cloudy": "Overcast",
 
@@ -1035,165 +1422,266 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   "field.condition": "Field condition",
   "field.view": "Field view",
   "field.farm": "Farm",
-  "field.satellite": "Satellite NDVI",
+  "field.ndvi": "NDVI (model)",
+  "field.ndviLegend": "Simulated NDVI",
   "field.image": "Isometric view of your farm field",
   "field.tank": "Water reserve tank",
 
-  "nasa.title": "NASA Data",
-  "nasa.seasonSummary": "{{season}} · seasonal summary",
+  "nasa.title": "NASA POWER",
+  "events.drought": "Drought",
+  "events.heat": "Heat",
+  "events.downpour": "Downpours",
+  "events.waterDeficit": "Water deficit",
+  "events.none": "No extreme events",
+  "severity.medium": "moderate",
+  "severity.high": "severe",
   "data.temperature": "Temperature",
   "data.rainfall": "Rainfall",
-  "data.soil": "Soil moisture",
-  "data.vegetation": "Vegetation health",
+  "data.humidity": "Humidity",
+  "data.wind": "Wind",
+  "data.solar": "Solar radiation",
   "data.chip.hot": "Hotter than normal",
   "data.chip.warm": "Warm",
   "data.chip.cool": "Cooler",
   "data.chip.normal": "Normal",
   "data.chip.veryDry": "Very dry",
   "data.chip.belowNormal": "Below normal",
+  "data.chip.aboveNormal": "Above normal",
   "data.chip.wet": "Wet",
-  "data.chip.dryTopsoil": "Dry topsoil",
-  "data.chip.moist": "Moist",
-  "data.chip.adequate": "Adequate",
-  "data.chip.sparse": "Sparse cover",
-  "data.chip.moderate": "Moderate",
-  "data.chip.dense": "Dense",
-  "data.unit.tempAvg": "°C avg",
+  "data.chip.dryAir": "Dry air",
+  "data.chip.humid": "Humid",
+  "data.chip.windy": "Windy",
+  "data.chip.calm": "Calm",
+  "data.chip.cloudy": "Cloudy",
+  "data.chip.sunny": "Sunny",
   "data.unit.rain": "mm / season",
-  "data.vsNormalTemp": "{{value}}°C vs normal",
-  "data.vsNormalPct": "{{value}}% vs normal",
-  "data.avg": "avg {{value}}",
-  "data.average20": "20-year average",
-  "data.gauge.dry": "Dry",
-  "data.gauge.good": "Good",
-  "data.gauge.wet": "Wet",
-  "data.gauge.bare": "Bare",
-  "data.gauge.lush": "Lush",
-  "data.src.temperature": "NASA POWER · 2 m air temp",
-  "data.src.rainfall": "GPM IMERG precipitation",
-  "data.src.soil": "SMAP · top 5 cm of soil",
-  "data.src.vegetation": "MODIS NDVI · regional cropland",
+  "data.unit.wind": "m/s",
+  "data.unit.solar": "MJ/m²/day",
+  "data.vsNormal": "{{value}} vs normal",
+  "data.average10": "10-season average",
+  "data.src.temperature": "2 m air temperature",
+  "data.src.rainfall": "corrected precipitation",
+  "data.src.humidity": "2 m relative humidity",
+  "data.src.wind": "2 m wind speed",
+  "data.src.solar": "all-sky surface shortwave",
   "insight.title": "What the data says",
-  "obs.period": "<strong>Observation period:</strong> {{period}} (seasonal mean)",
-  "obs.area": "<strong>Area:</strong> Demo farm, semi‑arid steppe · 43.2°N",
-  "obs.note": "Normal = 2001–2020 average. Values are illustrative, modeled on NASA products for learning — not a forecast.",
+  "insight.picked": "You are replaying the {{what}} of the last ten.",
+  "insight.demandUp": "This weather raises crop water demand by about {{pct}}%.",
+  "insight.demandDown": "This weather lowers crop water demand by about {{pct}}%.",
+  "insight.drought": "Rain was far below normal: stored soil water and irrigation matter.",
+  "insight.heat": "It was hotter than normal: heat-sensitive crops will struggle.",
+  "insight.downpour": "Many heavy-rain days: expect runoff, erosion and nutrient loss.",
+  "insight.waterDeficit": "Your reservoir is low for such a dry, hot season.",
+  "insight.calm": "No extremes: a good season to learn the basics.",
+  "obs.place": "Farm:",
+  "obs.period": "Period:",
+  "obs.note": "Historical NASA POWER record (community AG), compared with this location's 10-season average. Regional values, not a forecast.",
+  "obs.demo": "Demo data: illustrative values for a semi-arid farm. They are not measurements of any real place or year.",
+  "soil.title": "Your soil",
+  "soil.fertility": "Fertility",
+  "soil.moisture": "Moisture",
+  "soil.n": "Nitrogen",
+  "soil.om": "Organic matter",
+  "soil.erosion": "Erosion",
+  "soil.history": "Crop history:",
+  "soil.noHistory": "none yet",
 
   "meters.aria": "Farm status",
-  "meters.health": "Crop health",
-  "meters.soil": "Soil health",
+  "meters.yield": "Crop yield",
+  "meters.fertility": "Soil fertility",
+  "meters.moisture": "Soil moisture",
   "meters.water": "Water reserve",
   "meters.budget": "Budget",
-  "meters.sus": "Sustainability",
 
-  "report.eyebrow": "{{season}} · Season {{n}} result",
-  "report.fieldNdvi": "Your field NDVI",
-  "report.soil": "Soil",
-  "report.water": "Water",
-  "report.nasaData": "NASA data",
+  "param.T2M": "temperature (T2M)",
+  "param.PRECTOTCORR": "rain (PRECTOTCORR)",
+  "param.RH2M": "dry air (RH2M)",
+  "param.WS2M": "wind (WS2M)",
+  "param.ALLSKY_SFC_SW_DWN": "sunshine (ALLSKY)",
+  "param.none": "mild weather",
+  "param.reserve": "Reserve",
+
+  "report.eyebrow": "Level {{n}} · season {{season}} of {{total}} · {{year}}",
+  "report.yield": "Yield",
+  "report.profit": "Profit",
+  "report.nasaData": "NASA POWER data",
   "report.decision": "Your decision",
   "report.happened": "What happened",
+  "report.dataLine": "{{temp}} °C · {{rain}} mm rain · {{rh}}% humidity · wind {{ws}} m/s · sun {{sw}} MJ/m²/day",
+  "report.resultLine": "Yield {{yield}}% of potential. The crop needed ~{{demand}} mm of water and got ~{{supply}} mm.",
+  "report.why": "Why — cause and effect",
+  "report.badgeFarm": "Farm",
   "report.science": "Science note · ",
-  "report.tip": "Try next time · ",
-  "report.sold": "Sold {{cropLower}} for {{amount}}. Simplified model for learning — real yields depend on many local factors.",
+  "report.bestLabel": "Better option:",
+  "report.bestNumbers": "yield {{yield}}%, profit {{profit}}, water score {{water}}",
+  "report.bestSame": "Your plan was as good as the best alternative the model found for this season. Well read!",
+  "report.money": "Harvest sold for {{revenue}}; seeds and inputs cost {{cost}}. Simplified model for learning — real yields depend on many local factors.",
 
-  "explain.noIrrigation": "no irrigation",
-  "explain.irrigation": "{{levelLower}} irrigation (+{{mm}} mm)",
-  "explain.noFertilizer": "no fertilizer",
-  "explain.data": "<b>SMAP</b> soil moisture {{sm}} m³/m³ · <b>GPM</b> rain {{rain}} mm · <b>POWER</b> {{temp}}°C",
-  "explain.decision": "{{crop}} + {{irrigation}} + {{fertilizer}}",
-  "explain.tempLine": " NASA POWER's {{temp}}°C average was outside {{cropLower}}'s comfortable {{min}}–{{max}}°C range, which slowed growth.",
-  "explain.drought.result": "Rain, stored soil water and irrigation covered only ~{{pct}}% of the ~{{demand}} mm {{cropLower}} needed. Plants closed their pores to save water and growth stalled.",
-  "explain.drought.sci": "Stressed plants close their stomata, so photosynthesis slows. Satellites catch this as falling <b>NDVI</b> — often before leaves visibly turn brown.",
-  "explain.drought.tipDry": "When SMAP shows topsoil below ~{{threshold}} m³/m³, choose a drought‑tolerant crop (sorghum, chickpea) or plan more irrigation.",
-  "explain.drought.tipHeavy": "Heavy crops like maize need more water than rain alone supplies here. Match crop water needs to the rainfall forecast.",
-  "explain.overwater.result": "Water supply reached ~{{pct}}% of what {{cropLower}} could use. Soil stayed saturated, roots ran short of oxygen and nitrogen washed out.",
-  "explain.overwater.sci": "Waterlogged soil pushes out the air roots need, and extra water carries nitrate below the root zone — money lost and a risk to groundwater.",
-  "explain.overwater.tip": "SMAP already read {{sm}} m³/m³ (moist). Above ~{{threshold}}, irrigation is rarely needed. In wet seasons pick crops that tolerate damp soil.",
-  "explain.lownutrients.result": "Water was fine (~{{pct}}% of demand), but {{cropLower}} needed more nitrogen than the soil could supply. Leaves turned pale yellow‑green.",
-  "explain.lownutrients.sci": "Nitrogen builds chlorophyll. Pale leaves reflect more red light, so NDVI drops — MODIS showed only {{ndvi}} regionally this season.",
-  "explain.lownutrients.tip": "Add compost or green manure, or rotate in chickpea — legumes fix nitrogen from the air for the next crop.",
-  "explain.healthy.result": "{{crop}} had enough water (supply ≈ {{pct}}% of demand, inside the safe range) and enough nitrogen to grow a dense canopy.",
-  "explain.healthy.sci": "Healthy leaves absorb red light and reflect near‑infrared. NDVI measures that contrast: (NIR − Red) ÷ (NIR + Red).",
-  "explain.tip.wasted": "You irrigated even though rain and soil water were already enough. Skip it next time to save reserve and money.",
-  "explain.tip.temp": "Try a crop whose temperature range fits the NASA POWER forecast for even better growth.",
-  "explain.tip.keep": "Keep checking soil moisture before each season — conditions can flip fast.",
+  "reason.demand": "Crops needed about {{demand}} mm of water. Weather that raised demand: {{drivers}}.",
+  "reason.water.short": "Rain ({{rain}} mm), stored soil water and irrigation covered only {{pct}}% of that need ({{supply}} of {{demand}} mm), so plants closed their pores and growth slowed.",
+  "reason.water.excess": "The field got {{pct}}% of the water the crop could use ({{rain}} mm of rain): waterlogged roots ran short of oxygen.",
+  "reason.water.ok": "Water supply was {{pct}}% of the need — inside the safe range ({{rain}} mm of rain).",
+  "reason.irrigation.wasted": "About {{mm}} of {{total}} mm of irrigation was not needed: rain and soil water were already enough.",
+  "reason.irrigation.helped": "Irrigation closed a real gap of about {{mm}} mm.",
+  "reason.irrigation.evaporation": "Sprinklers lost {{pct}}% of the water to evaporation and wind drift in this hot or windy weather.",
+  "reason.runoff": "{{days}} heavy-rain days ran off about {{mm}} mm before it could soak in.",
+  "reason.temp.heat": "Average {{temp}} °C was above the crop's comfortable maximum of {{max}} °C: heat stress.",
+  "reason.temp.cold": "Average {{temp}} °C was below the crop's comfortable minimum of {{min}} °C: slow growth.",
+  "reason.temp.ok": "Average {{temp}} °C was within the crop's comfortable {{min}}–{{max}} °C.",
+  "reason.solar.low": "Only {{value}} MJ/m²/day of sunlight: cloudy weather limited photosynthesis.",
+  "reason.nitrogen.short": "Plants could get only {{pct}}% of the nitrogen they needed.",
+  "reason.nitrogen.leached": "About {{kg}} kg of nitrogen washed below the roots with the rain.",
+  "reason.rotation.legume": "{{prev}} last season left extra nitrogen and broke disease cycles: rotation bonus.",
+  "reason.rotation.ok": "Rotating after {{prev}} helped break pest and disease cycles.",
+  "reason.rotation.monoculture": "Planting {{prev}} again (monoculture) built up pests and diseases and drained the same nutrients.",
+  "reason.disease.humid": "Humid, warm air ({{rh}}% humidity) favoured fungal disease.",
+  "reason.soil.fertile": "Fertile soil ({{value}}/100) supported growth.",
+  "reason.soil.poor": "Poor soil ({{value}}/100) held the crop back.",
+  "reason.erosion": "Heavy rain and wind carried away topsoil (erosion +{{value}}).",
+  "reason.protection.mulch": "Mulch kept moisture in and reduced runoff and erosion.",
+  "reason.protection.cover": "Cover strips held the soil in place and added organic matter.",
+  "reason.legume.fix": "Chickpea fixed about {{n}} kg of nitrogen from the air for the next crop.",
 
-  "banner.win.title": "Harvest complete!",
-  "banner.win.text": "Your field made it through all three seasons. Let's see how sustainable your choices were.",
-  "banner.fail.title": "Harvest failed",
-  "banner.fail.text": "Too many stressed seasons left the crop weak. Every failed harvest is data too — let's review what the satellites were telling you.",
+  "science.drought": "Stressed plants close their stomata, so photosynthesis slows. Satellites see this as falling NDVI — often before leaves visibly turn brown.",
+  "science.excess": "Waterlogged soil pushes out the air roots need, and extra water carries nitrate below the root zone — lost money and a risk to groundwater.",
+  "science.heat": "Above their temperature range, plants lose more water than roots can supply and their enzymes work less well, so grain and seed filling suffers.",
+  "science.cold": "Below their temperature range, crops develop slowly and may not fill grain before the season ends.",
+  "science.nitrogen": "Nitrogen builds chlorophyll. Pale leaves reflect more red light, so NDVI drops. Legumes host bacteria that turn air nitrogen into plant food.",
+  "science.disease": "Many crop diseases survive in residues of the same crop. Rotation starves them; humid, warm weather helps them spread.",
+  "science.erosion": "Raindrops hitting bare soil break it apart and runoff carries the fertile topsoil away. Cover and mulch absorb that energy.",
+  "science.healthy": "Healthy leaves absorb red light and reflect near-infrared. NDVI measures that contrast: (NIR − Red) ÷ (NIR + Red).",
+
+  "whatif.eyebrow": "What if · {{season}}",
+  "whatif.title": "Compare with another plan",
+  "whatif.yours": "Your decision",
+  "whatif.alternative": "Alternative",
+  "whatif.crop": "Crop",
+  "whatif.irrigationSel": "Irrigation",
+  "whatif.method": "Method",
+  "whatif.fertilizer": "Fertilizer",
+  "whatif.protection": "Soil protection",
+  "whatif.useBest": "Use the best option",
+  "whatif.metric": "Result",
+  "whatif.yield": "Yield",
+  "whatif.profit": "Profit",
+  "whatif.irrigation": "Irrigation delivered",
+  "whatif.reserveUsed": "Reserve points used",
+  "whatif.waterScore": "Water-saving score",
+  "whatif.fertility": "Soil fertility change",
+  "whatif.erosion": "Erosion added",
+  "whatif.leached": "Nitrogen leached (kg)",
+  "whatif.state": "Field condition",
+  "whatif.unaffordable": "This alternative costs more than your budget or water reserve allowed this season.",
+  "whatif.note": "Simulation only — same NASA POWER season, same starting soil. Your saved progress does not change.",
+
+  "banner.win.title": "Level complete!",
+  "banner.win.text": "You met every goal. Let's see how many stars your choices earned.",
+  "banner.fail.title": "Level not passed",
+  "banner.fail.text": "Some goals were missed. Every failed season is data too — let's see what the numbers were telling you.",
+  "banner.fail.bankrupt": "The farm ran out of money for seed. Let's see where the budget went.",
+
+  "result.eyebrow": "Level {{n}} result",
+  "result.passed": "Level passed",
+  "result.failed": "Level not passed",
+  "result.passedText": "Goal met · {{stars}} of 3 stars",
+  "result.failedText": "Not all goals were met. Check the recommendations and try again.",
+  "result.bankrupt": "Bankrupt: the budget fell below {{min}}, not enough to buy seed.",
+  "result.goals": "Goals",
+  "result.categories": "Scores",
+  "result.cat.yield": "Yield",
+  "result.cat.water": "Water saving",
+  "result.cat.soil": "Soil health",
+  "result.cat.target": "★ at {{value}}",
+  "result.cat.soilTarget": "fertility {{delta}} · ★ at {{value}}",
+  "result.totals": "Farm results",
+  "result.profit": "Profit",
+  "result.revenue": "Harvest sales",
+  "result.avgYield": "Average yield",
+  "result.irrigation": "Irrigation",
+  "result.wasted": "Unneeded irrigation",
+  "result.reserveUsed": "Reserve points used",
+  "result.reserveEnd": "Reserve left",
+  "result.soil": "Soil change",
+  "result.leached": "Nitrogen leached",
+  "result.seasons": "Season by season",
+  "result.recommendations": "Recommendations",
+  "result.bestPlan": "Best plan the model found",
+  "result.bestPlanScore": "This plan earns {{stars}} ★, score {{score}}, profit {{profit}}.",
+  "result.noPlan": "No affordable plan exists for this level.",
+  "result.provenance": "Data: {{source}} · {{place}}.",
+
+  "rec.droughtCrop": "When NASA POWER shows little rain and high temperature, choose drought-tolerant sorghum or chickpea, or budget water for irrigation.",
+  "rec.checkRain": "Check rainfall and soil moisture before irrigating: part of your irrigation was not needed.",
+  "rec.slowFertilizer": "In wet seasons use compost or green manure instead of synthetic nitrogen, which leaches with heavy rain.",
+  "rec.protectSoil": "Mulch or cover strips protect bare soil from heavy rain and wind erosion.",
+  "rec.rotate": "Rotate crops: planting the same crop again builds up diseases and drains the same nutrients.",
+  "rec.addNitrogen": "Low nitrogen held yields back: add compost or green manure, or plant a legume first.",
+  "rec.heatCrop": "Match the crop to the NASA POWER temperature: each crop has a comfortable range.",
+  "rec.costs": "The plan cost more than the harvest earned: skip inputs the data show you don't need.",
+  "rec.drip": "In hot, windy weather drip irrigation delivers more water per reserve point than sprinklers.",
+  "rec.buildSoil": "Soil fertility fell: legumes, compost and cover crops rebuild it for future seasons.",
+  "rec.gridNote": "NASA POWER describes regional climate, not your exact field: real farmers combine it with local observations.",
+
+  "farm.open": "Farm report",
+  "farm.eyebrow": "Whole-farm report · stars earned",
+  "farm.completed": "{{n}} of {{total}} levels passed",
+  "farm.levels": "Best result per level",
+  "farm.level": "Level",
+  "farm.stars": "Stars",
+  "farm.data": "Data",
+  "farm.totalProfit": "Profit across best runs",
+  "farm.totalIrrigation": "Irrigation across best runs",
+  "farm.weak.yield": "Your weakest area is yield: match crops to the season's temperature and water before anything else.",
+  "farm.weak.water": "Your weakest area is water saving: irrigate only the gap between crop need and rain plus soil water.",
+  "farm.weak.soil": "Your weakest area is soil health: rotate with legumes and keep the soil covered.",
+  "farm.lesson.1": "Rain (PRECTOTCORR) and stored soil water set the baseline; heat (T2M), dry air (RH2M), wind (WS2M) and sunshine raise how much water crops need.",
+  "farm.lesson.2": "Drought-tolerant crops and drip irrigation stretch a small water reserve furthest.",
+  "farm.lesson.3": "Legumes such as chickpea add nitrogen for the next crop; monoculture drains soil and invites disease.",
+  "farm.lesson.4": "In wet seasons, cover the soil and avoid fast fertilizer to prevent erosion and leaching.",
+  "farm.lesson.5": "Satellite and model data from NASA POWER are regional: combine them with what you see in your own field.",
+  "farm.reset": "Reset progress",
+  "farm.resetConfirm": "Reset all level progress and stars? This cannot be undone.",
 
   "final.rank.master": "Master Navigator",
   "final.rank.skilled": "Skilled Navigator",
   "final.rank.growing": "Growing Navigator",
   "final.rank.rookie": "Rookie Navigator",
-  "final.scoreLabel": "Final sustainability score",
-  "final.success": "Successful harvest · average crop health {{avg}}%",
-  "final.fail": "Failed harvest · average crop health {{avg}}% (60% needed)",
-  "final.seasons": "Your three seasons",
-  "final.breakdown": "Score breakdown",
-  "final.avgHealth": "Avg crop health",
-  "final.finalBudget": "Final budget",
-  "final.profit": "Profit bonus",
-  "final.loss": "Loss penalty",
-  "final.badges": "Badges",
   "final.lessons": "What NASA data taught you",
-  "final.disclaimer": "Farm Navigator uses a simplified crop model and illustrative data inspired by NASA POWER, GPM, SMAP and MODIS.<br>It teaches how to read Earth observations — it does not predict real yields.",
+  "final.disclaimer": "Farm Navigator uses a simplified, deterministic crop model and NASA POWER historical data. It teaches how to read Earth observations — it is not a yield forecast or farming advice.",
 
-  "badges.water.name": "Water Wise",
-  "badges.water.desc": "Never irrigated when soil was already moist",
-  "badges.soil.name": "Soil Guardian",
-  "badges.soil.desc": "Finished with soil health 70+",
-  "badges.data.name": "Data Driven",
-  "badges.data.desc": "No drought or overwatering seasons",
-  "badges.heat.name": "Heat Survivor",
-  "badges.heat.desc": "Healthy crop through the summer heatwave",
-  "badges.legume.name": "Legume Legend",
-  "badges.legume.desc": "Planted a nitrogen‑fixing legume",
-
-  "lessons.drought": "SMAP soil moisture below ~{{threshold}} m³/m³ plus low GPM rainfall signals drought risk — pick tolerant crops or budget water.",
-  "lessons.overwater": "When soil is already moist and rain is above normal, extra irrigation wastes water and washes nutrients away.",
-  "lessons.nutrients": "Falling NDVI with good water can point to nutrient shortage. Legumes and compost rebuild soil nitrogen.",
-  "lessons.temperature": "NASA POWER temperature tells you which crops fit the season: every crop has a comfortable range.",
-  "lessons.ndvi": "NDVI compares near‑infrared and red light to show how green and dense crops are — from space.",
+  "toast.offline": "You're offline. Saved NASA data still works.",
+  "toast.online": "Back online.",
+  "toast.staleCache": "Using a saved copy of the NASA data ({{reason}}).",
+  "toast.nextSeason": "Season {{n}} · {{season}}: read the new data first.",
 
   "tut.step": "How to play · {{n}} of {{total}}",
   "tut.welcome.title": "Welcome, Navigator!",
-  "tut.welcome.body": "You run a small farm for three seasons. Your goal: grow healthy crops while protecting soil, water and your budget.",
-  "tut.welcome.chip1": "3 seasons",
+  "tut.welcome.body": "Pick a real farm location. Seven levels replay real past seasons there — a typical year, drought, heat, downpours — each with its own goal.",
+  "tut.welcome.chip1": "7 levels",
   "tut.welcome.chip2": "4 crops",
-  "tut.welcome.chip3": "1 farm",
-  "tut.sky.title": "Read the sky first",
-  "tut.sky.body": "The NASA Data panel shows what satellites observed: temperature, rainfall, soil moisture and vegetation health. Compare each value with its normal.",
-  "tut.decide.title": "Make your decision",
-  "tut.decide.body": "Pick a crop that fits the conditions, set irrigation, and choose a fertilizer. Every choice costs money — and some cost the planet.",
+  "tut.welcome.chip3": "Real NASA data",
+  "tut.sky.title": "Read the data first",
+  "tut.sky.body": "The NASA POWER panel shows the season's temperature, rain, humidity, wind and sunshine, compared with the 10-season normal. Events like drought or downpours are flagged for you.",
+  "tut.decide.title": "Make your decisions",
+  "tut.decide.body": "Choose a crop, irrigation (and method) and fertilizer — all three are required. Soil protection is optional. Watch your budget, water reserve and what you planted last season.",
   "tut.decide.chip1": "Crop",
   "tut.decide.chip2": "Irrigation",
   "tut.decide.chip3": "Fertilizer",
-  "tut.watch.title": "Watch and learn",
-  "tut.watch.body": "Your field reacts: healthy, drought stress, overwatering or low nutrients. After each season you'll see how the NASA data explains the result.",
-  "tut.watch.chip1": "Balance 5 meters",
-  "tut.watch.chip2": "Earn up to 3 stars",
+  "tut.decide.chip4": "Soil protection",
+  "tut.watch.title": "Learn from every season",
+  "tut.watch.body": "After each season you see why things happened, linked to the NASA data, plus a better option and a What If comparison. Earn up to 3 stars for yield, water saving and soil health.",
+  "tut.watch.chip1": "Cause & effect",
+  "tut.watch.chip2": "What If",
+  "tut.watch.chip3": "Up to 3 stars",
 
   "pause.title": "Paused",
-  "pause.text": "Your field will wait. Satellites keep orbiting.",
-
-  "dock.toggle": "Design states",
-  "dock.screens": "Screens",
-  "dock.fieldStates": "Field states",
-  "dock.loading": "Loading",
-  "dock.error": "Error",
-  "dock.tutorial": "Tutorial",
-  "dock.game": "Game dashboard",
-  "dock.finalWin": "Final score · success",
-  "dock.finalFail": "Final score · failed",
-  "dock.report": "Season report"
+  "pause.text": "Your field will wait. Satellites keep orbiting."
 }
 </script>
 <script type="application/json" id="i18n-ru">
 {
   "meta.title": "Farm Navigator",
-  "meta.description": "Обучающая фермерская стратегия о том, как принимать устойчивые решения с помощью данных NASA о Земле.",
+  "meta.description": "Обучающая фермерская стратегия: читайте реальные данные NASA POWER и принимайте устойчивые решения.",
   "brand.tagline": "На данных NASA о Земле",
 
   "language.label": "Язык",
@@ -1211,52 +1699,184 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   "menu.open": "Открыть меню настроек",
   "menu.close": "Закрыть меню настроек",
 
-  "loading.title": "Настраиваемся на орбиту Земли…",
-  "loading.text": "Загружаем спутниковые наблюдения этого сезона для вашей фермы.",
-  "loading.progress": "Загрузка данных NASA",
+  "dir.N": "с. ш.",
+  "dir.S": "ю. ш.",
+  "dir.E": "в. д.",
+  "dir.W": "з. д.",
+  "units.points": "{{n}} ед.",
+  "units.kgN": "{{n}} кг N",
+  "months.north": "май–авг",
+  "months.south": "ноя–фев",
+  "period.demo": "Демо-сезон {{n}} (иллюстрация)",
+  "period.demoShort": "Демо {{n}}",
+
+  "status.live": "Онлайн · NASA POWER",
+  "status.cached": "Из кэша · {{date}}",
+  "status.stale": "Сохранённая копия · {{date}}",
+  "status.demo": "Демо-данные",
+  "status.liveHint": "Только что загружено из NASA POWER через сервер игры.",
+  "status.cachedHint": "Настоящие данные NASA POWER из кэша сервера или браузера.",
+  "status.demoHint": "Иллюстративные значения, а не измерения реального места или года.",
+
+  "loading.title": "Настраиваемся на NASA POWER…",
+  "loading.text": "Загружаем 10 прошлых вегетационных сезонов: {{place}}.",
+  "loading.progress": "Загрузка данных NASA POWER",
   "loading.step.temperature": "Температура воздуха",
   "loading.step.rainfall": "Осадки",
-  "loading.step.soil": "Влажность почвы",
-  "loading.step.vegetation": "Состояние растительности",
-  "error.title": "Сигнал потерян",
-  "error.text": "Не удалось загрузить данные NASA для этого сезона. Прогресс фермы сохранён — ничего ещё не посажено.",
-  "error.code": "Сервер данных не ответил вовремя · код 504",
+  "loading.step.air": "Влажность и ветер",
+  "loading.step.solar": "Солнечная радиация",
+
+  "error.offline.title": "Нет подключения к интернету",
+  "error.offline.text": "Интернета нет, а сохранённых данных NASA для этой фермы пока нет. Подключитесь и попробуйте снова или играйте на демо-данных с явной пометкой.",
+  "error.offline.short": "нет сети",
+  "error.timeout.title": "NASA POWER отвечает слишком долго",
+  "error.timeout.text": "Время ожидания истекло. Сервис NASA POWER иногда перегружен — попробуйте ещё раз чуть позже или играйте на демо-данных.",
+  "error.timeout.short": "истекло время ожидания",
+  "error.nasa.title": "Сигнал потерян",
+  "error.nasa.text": "Сервер игры не смог получить данные из NASA POWER. Попробуйте снова, выберите другое место или играйте на демо-данных.",
+  "error.nasa.short": "NASA POWER недоступен",
+  "error.server.title": "Сервер недоступен",
+  "error.server.text": "Сервер игры не ответил. Проверьте подключение и попробуйте снова.",
+  "error.server.short": "сервер недоступен",
+  "error.no-backend.title": "Сервер игры не запущен",
+  "error.no-backend.text": "Данные NASA загружаются через сервер игры, а он здесь недоступен (например, страница открыта как файл). Запустите его командой «uvicorn app.main:app» или играйте на демо-данных.",
+  "error.no-backend.short": "нет сервера игры",
+  "error.invalid.title": "Неожиданные данные",
+  "error.invalid.text": "Сервер ответил, но данные не похожи на сезоны NASA POWER. Попробуйте снова или играйте на демо-данных.",
+  "error.invalid.short": "неожиданные данные",
+  "error.code": "Причина: {{kind}} · {{status}}",
 
   "actions.retry": "Попробовать снова",
   "actions.sampleData": "Играть на демо-данных",
-  "actions.confirmGrow": "Подтвердить · {{season}}",
+  "actions.changeLocation": "Сменить место",
+  "actions.continue": "Продолжить",
+  "actions.refresh": "Обновить данные",
+  "actions.loadNasa": "Загрузить данные NASA",
+  "actions.play": "Играть",
+  "actions.replay": "Сыграть ещё",
+  "actions.startLevel": "Начать уровень",
+  "actions.confirmGrow": "Засеять сезон {{season}}",
   "actions.inProgress": "Сезон идёт…",
-  "actions.harvest": "Собрать урожай",
+  "actions.levelOver": "Уровень завершён",
   "actions.nextSeason": "Следующий сезон",
-  "actions.seeScore": "Итоговый счёт",
-  "actions.playAgain": "Играть снова",
-  "actions.reviewTutorial": "Повторить правила",
+  "actions.finishLevel": "Завершить уровень",
+  "actions.seeResult": "Результат",
+  "actions.whatIf": "А что если…?",
+  "actions.backToReport": "Назад к отчёту",
+  "actions.nextLevel": "Уровень {{n}}",
+  "actions.levels": "Все уровни",
   "actions.skip": "Пропустить",
   "actions.back": "Назад",
   "actions.next": "Далее",
-  "actions.startFarming": "Начать игру",
+  "actions.startFarming": "За работу",
   "actions.resume": "Продолжить",
-  "actions.restart": "Начать заново",
+  "actions.restartLevel": "Начать уровень заново",
 
-  "header.mission": "Текущая миссия",
+  "header.mission": "Цель уровня",
   "header.help": "Как играть",
   "header.pause": "Поставить игру на паузу",
   "header.pauseShort": "Пауза",
+  "confirm.leave": "Выйти из уровня? Сыгранные в этой попытке сезоны будут потеряны.",
 
-  "season.title": "{{name}} {{year}}",
-  "season.count": "Сезон {{n}} из 3",
-  "seasons.spring.name": "Весна",
-  "seasons.spring.period": "1 марта – 31 мая 2026",
-  "seasons.spring.mission": "Вырастите здоровый урожай, не тратя воду впустую",
-  "seasons.spring.insight": "Почва уже влажная, осадки близки к норме. Большинству культур этой весной почти не понадобится дополнительный полив.",
-  "seasons.summer.name": "Лето",
-  "seasons.summer.period": "1 июня – 31 августа 2026",
-  "seasons.summer.mission": "Сохраните поле во время жары",
-  "seasons.summer.insight": "Осадков на 70% меньше нормы, верхний слой почвы сухой. Жара повышает потребность культур в воде. Выбирайте засухоустойчивые культуры или поливайте.",
-  "seasons.autumn.name": "Осень",
-  "seasons.autumn.period": "1 сентября – 30 ноября 2026",
-  "seasons.autumn.mission": "Завершите игру уверенно и сберегите почву",
-  "seasons.autumn.insight": "Влажная осень: осадков на 30% больше нормы, почва влажная. Лишний полив или быстродействующее удобрение может вымыться.",
+  "location.title": "Где ваша ферма?",
+  "location.text": "Выберите реальное место. Игра загрузит последние 10 вегетационных сезонов, записанных там NASA POWER, и превратит их в уровни.",
+  "location.searchTitle": "Найти город",
+  "location.searchLabel": "Город или место",
+  "location.searchPlaceholder": "например, Алматы, Канзас-Сити, Найроби",
+  "location.search": "Найти",
+  "location.searching": "Ищем «{{q}}»…",
+  "location.found": "Найдено мест: {{n}} — выберите одно.",
+  "location.none": "По запросу «{{q}}» ничего не найдено. Проверьте написание или введите координаты.",
+  "location.tooShort": "Введите хотя бы 2 буквы.",
+  "location.err.offline": "Нет сети, поэтому поиск городов недоступен. Выберите пример фермы или введите координаты.",
+  "location.err.timeout": "Поиск города не ответил вовремя. Попробуйте снова или введите координаты.",
+  "location.err.nasa": "Сервис поиска городов недоступен. Введите координаты.",
+  "location.err.server": "Сервис поиска городов недоступен. Введите координаты.",
+  "location.err.no-backend": "Для поиска города нужен сервер игры. Выберите пример фермы или введите координаты.",
+  "location.err.invalid": "Поиск вернул неожиданные данные. Введите координаты.",
+  "location.presetsTitle": "Или начните с примера фермы",
+  "location.manualTitle": "Ввести координаты",
+  "location.latitude": "Широта",
+  "location.longitude": "Долгота",
+  "location.use": "Выбрать",
+  "location.manualHint": "Широта −90…90, долгота −180…180 (в десятичных градусах).",
+  "location.invalid": "Введите широту от −90 до 90 и долготу от −180 до 180.",
+  "location.current": "Текущая ферма",
+  "location.custom": "Ферма в точке {{coords}}",
+  "location.note": "<strong>О данных:</strong> NASA POWER даёт региональные значения для ячейки сетки шириной в десятки километров — по спутниковым наблюдениям и климатическим моделям. Это <strong>прошлые сезоны</strong>, а не прогноз погоды.",
+  "places.kansas": "Салина, Канзас, США",
+  "places.kansas.note": "Пшеничный пояс Великих равнин",
+  "places.almaty": "Алматинская область, Казахстан",
+  "places.almaty.note": "Полузасушливые предгорья",
+  "places.kyiv": "Киев, Украина",
+  "places.kyiv.note": "Черноземные равнины",
+  "places.delhi": "Дели, Индия",
+  "places.delhi.note": "Жаркий муссонный климат",
+  "places.nairobi": "Найроби, Кения",
+  "places.nairobi.note": "Тропическое высокогорье",
+  "places.pergamino": "Пергамино, Аргентина",
+  "places.pergamino.note": "Пампа, южное полушарие",
+
+  "levels.title": "Семь сезонов до мастерства",
+  "levels.intro": "Каждый уровень — реальные прошлые сезоны из записей NASA POWER для вашей фермы: типичный год, самый засушливый, самый жаркий, самый дождливый. Пройдите уровень, чтобы открыть следующий.",
+  "levels.seasons": "вегетационные сезоны {{months}} {{from}}–{{to}}",
+  "levels.demoPlace": "Демо-ферма (иллюстративные данные)",
+  "levels.demoNote": "Демо-значения не привязаны к реальному месту или году.",
+  "levels.difficulty": "Сложность {{n}} из 7",
+  "levels.locked": "Закрыт",
+  "levels.unlockHint": "Пройдите уровень {{n}}, чтобы открыть.",
+  "levels.best": "Лучший счёт {{score}}",
+  "levels.notPassed": "Ещё не пройден · лучший {{score}}",
+  "levels.starsAria": "Звёзд: {{n}} из 3",
+  "levels.firstHarvest.name": "Первый урожай",
+  "levels.firstHarvest.short": "Основы: выберите культуру, полив и удобрение для типичного сезона.",
+  "levels.firstHarvest.story": "Вы только что получили небольшую ферму. Этот сезон — самый типичный за последние десять лет. Изучите данные NASA POWER и спланируйте культуру, воду и удобрения.",
+  "levels.waterShortage.name": "Нехватка воды",
+  "levels.waterShortage.short": "Водохранилище заполнено лишь на треть — в самый засушливый сезон.",
+  "levels.waterShortage.story": "Водохранилище заполнено только на 35%, а сезон — самый засушливый за десять лет. Каждая капля на счету: выберите культуру, которой хватает мало воды, и поливайте только там, где это окупится.",
+  "levels.depletedSoil.name": "Истощённая почва",
+  "levels.depletedSoil.short": "Годы пшеничной монокультуры истощили почву. Восстановите азот севооборотом.",
+  "levels.depletedSoil.story": "Прежний владелец годами сеял на этом поле пшеницу. Азота и органического вещества почти не осталось. За два сезона восстановите почву бобовыми, компостом и правильным севооборотом — и всё-таки соберите урожай.",
+  "levels.heatwave.name": "Аномальная жара",
+  "levels.heatwave.short": "Самый жаркий сезон десятилетия. Выберите культуру, которая выдержит жару.",
+  "levels.heatwave.story": "По данным NASA POWER, это самый жаркий вегетационный сезон в вашем районе за десять лет. Горячий сухой воздух повышает потребность в воде, а теплочувствительные культуры страдают. Выберите жаростойкую культуру и разумно распорядитесь водой.",
+  "levels.rainySeason.name": "Сезон ливней",
+  "levels.rainySeason.short": "Самый дождливый сезон: защитите почву от эрозии и вымывания удобрений.",
+  "levels.rainySeason.story": "Это самый дождливый сезон за десять лет, с множеством дней сильных ливней. Голая почва смывается, а быстрые удобрения вымываются ниже корней. Держите почву укрытой, а азот — в поле.",
+  "levels.economicCrisis.name": "Экономический кризис",
+  "levels.economicCrisis.short": "На старте всего $2 200. Получите прибыль за два сезона.",
+  "levels.economicCrisis.story": "Цены выросли, а банк урезал кредит: у вас всего $2 200. За два последних сезона заработайте так, чтобы закончить минимум с $3 000. Дорогие вложения окупаются, только если окупается урожай.",
+  "levels.climateChallenge.name": "Климатический вызов",
+  "levels.climateChallenge.short": "Засуха, жара и ливни — три экстремальных сезона подряд.",
+  "levels.climateChallenge.story": "Финальное испытание: самый засушливый, самый жаркий и самый дождливый сезоны десятилетия подряд. Сохраните урожайность, не уйдите в убыток и оставьте почву не хуже, чем она была.",
+
+  "pick.typical": "типичный сезон",
+  "pick.driest": "самый засушливый",
+  "pick.hottest": "самый жаркий",
+  "pick.wettest": "самый дождливый",
+  "pick.recent": "недавний сезон",
+
+  "goal.avgYield": "Средняя урожайность не ниже {{value}}",
+  "goal.minYield": "Ни одного сезона ниже {{value}}",
+  "goal.reserveEnd": "Оставить в запасе воды не меньше {{value}}",
+  "goal.fertilityDelta": "Повысить плодородие почвы на {{value}} или больше",
+  "goal.erosionDelta": "Эрозия почвы вырастет не больше чем на {{value}}",
+  "goal.nLeached": "Потерять при вымывании не больше {{value}}",
+  "goal.finalBudget": "Закончить с бюджетом не меньше {{value}}",
+
+  "brief.eyebrow": "Уровень {{n}} из {{total}}",
+  "brief.goal": "Цель",
+  "brief.seasons": "Реальные сезоны уровня ({{n}})",
+  "brief.start": "На старте",
+  "brief.previous": "Прежние культуры",
+  "brief.winLabel": "Победа:",
+  "brief.win": "выполнить все цели к концу последнего сезона.",
+  "brief.loseLabel": "Поражение:",
+  "brief.lose": "не выполнить цель или закончить сезон с суммой меньше {{min}} — её не хватит на семена.",
+  "brief.demo": "Вы играете на демо-данных: сезоны иллюстративные, а не реальные записи.",
+
+  "game.levelTitle": "Уровень {{n}} · {{name}}",
+  "game.seasonCount": "Сезон {{n}} из {{total}} · {{season}}",
 
   "decisions.title": "Ваши решения",
   "decisions.subtitle": "Изучите данные и спланируйте сезон",
@@ -1264,56 +1884,86 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   "decisions.cropGroup": "Культура",
   "decisions.irrigation": "2 · Полив",
   "decisions.irrigationGroup": "Уровень полива",
+  "decisions.methodGroup": "Способ полива",
   "decisions.fertilizer": "3 · Удобрение",
   "decisions.fertilizerGroup": "Удобрение",
-  "decisions.likes": "Комфортно: {{min}}–{{max}}°C",
+  "decisions.protection": "4 · Защита почвы",
+  "decisions.protectionGroup": "Защита почвы",
+  "decisions.optional": "по желанию",
+  "decisions.likes": "Комфортно: {{min}}–{{max}} °C",
+  "decisions.lastCrop": "Прошлый сезон: {{crop}}",
   "decisions.reserve": "Запас {{pct}}%",
   "decisions.waterNeed": "Потребность в воде: {{n}} из 3",
+  "decisions.tagRepeat": "Как в прошлом сезоне",
+  "decisions.tagLegumeCredit": "Азот от бобовых",
+  "decisions.missing": "Ещё нужно выбрать: {{list}}.",
+  "decisions.missing.crop": "культуру",
+  "decisions.missing.irrigation": "полив",
+  "decisions.missing.fertilizer": "удобрение",
 
   "crops.wheat.name": "Пшеница",
-  "crops.wheat.tag": "Холодостойкая",
+  "crops.wheat.tag": "Любит прохладу",
   "crops.maize.name": "Кукуруза",
-  "crops.maize.tag": "Высокая цена",
+  "crops.maize.tag": "Дорогая, влаголюбивая",
   "crops.sorghum.name": "Сорго",
-  "crops.sorghum.tag": "Засухоустойчивое",
+  "crops.sorghum.tag": "Жаро- и засухоустойчивое",
   "crops.chickpea.name": "Нут",
-  "crops.chickpea.tag": "Фиксирует азот",
+  "crops.chickpea.tag": "Бобовое, фиксирует N",
 
   "irrigation.off": "Нет",
   "irrigation.low": "Низкий",
   "irrigation.medium": "Средний",
   "irrigation.high": "Высокий",
+  "irrigation.hintChoose": "Выберите объём полива — вариант «Нет» тоже допустим.",
   "irrigation.hintNone": "Без дополнительной воды — культура полагается на <b>осадки и запас воды в почве</b>.",
-  "irrigation.hintAdds": "Добавляет <b>~{{mm}} mm</b> воды · расходует <b>{{pct}}%</b> запаса",
-  "irrigation.heat": " (жара усиливает испарение)",
+  "irrigation.hintAdds": "Доставляет к корням <b>~{{mm}} mm</b> · расходует <b>{{pts}}</b> ед. запаса · {{loss}}% теряется на испарение",
+  "methods.sprinkler.name": "Дождевание",
+  "methods.sprinkler.desc": "Без доплаты; в жару и ветер теряет больше воды",
+  "methods.drip.name": "Капельный",
+  "methods.drip.desc": "+{{cost}}; расходует запас на 35% меньше",
 
   "fertilizers.none.name": "Без удобрения",
   "fertilizers.none.desc": "Только азот почвы",
   "fertilizers.compost.name": "Компост",
-  "fertilizers.compost.desc": "Действует медленно, питает почву",
+  "fertilizers.compost.desc": "Действует медленно, копит органику",
   "fertilizers.synthetic.name": "Минеральный азот",
-  "fertilizers.synthetic.desc": "Быстрый эффект, может вымыться",
-  "fertilizers.green.name": "Бобовый сидерат",
-  "fertilizers.green.desc": "Запаханная покровная культура",
+  "fertilizers.synthetic.desc": "Быстрый эффект, вымывается ливнями",
+  "fertilizers.green.name": "Сидерат",
+  "fertilizers.green.desc": "Запаханная бобовая покровная культура",
   "fertilizers.free": "Бесплатно",
+  "protection.none.name": "Без защиты",
+  "protection.none.desc": "Голая почва между рядами",
+  "protection.mulch.name": "Мульча",
+  "protection.mulch.desc": "Соломенное укрытие: меньше испарения и стока",
+  "protection.cover.name": "Защитные полосы",
+  "protection.cover.desc": "Травяные полосы: лучше всего против эрозии",
 
   "plan.seeds": "Семена · {{crop}}",
   "plan.irrigation": "Полив · {{level}}",
   "plan.fertilizer": "Удобрение · {{name}}",
+  "plan.protection": "Защита · {{name}}",
   "plan.total": "Затраты за сезон",
+  "plan.budgetLeft": "Бюджет после затрат",
   "plan.noBudget": "Бюджета не хватает на этот план.",
+  "plan.noReserve": "В запасе не хватает воды для такого полива.",
+
+  "describe.irrigation": "полив: {{level}}",
+  "describe.noIrrigation": "без полива",
+  "describe.noFertilizer": "без удобрения",
 
   "states.planning": "Готово к посеву",
   "states.healthy": "Здоровые посевы",
   "states.drought": "Стресс от засухи",
+  "states.heatstress": "Тепловой стресс",
   "states.overwater": "Переувлажнение",
-  "states.lownutrients": "Мало питательных веществ",
-  "states.harvest": "Успешный урожай",
-  "states.failed": "Неурожай",
+  "states.lownutrients": "Мало азота",
+  "states.disease": "Давление болезней",
+  "states.harvest": "Уровень пройден",
+  "states.failed": "Уровень не пройден",
 
   "weather.showers": "Мягко · небольшие дожди",
-  "weather.heat": "Жара · сухо",
-  "weather.rain": "Сыро · частые дожди",
+  "weather.heat": "Жарко и сухо",
+  "weather.rain": "Сыро · ливни",
   "weather.clear": "Ясно",
   "weather.cloudy": "Пасмурно",
 
@@ -1321,1090 +1971,265 @@ h1,h2,h3,h4{font-family:var(--font-display);margin:0;letter-spacing:.2px}
   "field.condition": "Состояние поля",
   "field.view": "Вид поля",
   "field.farm": "Ферма",
-  "field.satellite": "Спутник NDVI",
+  "field.ndvi": "NDVI (модель)",
+  "field.ndviLegend": "Смоделированный NDVI",
   "field.image": "Изометрический вид вашего поля",
   "field.tank": "Резервуар с запасом воды",
 
-  "nasa.title": "Данные NASA",
-  "nasa.seasonSummary": "{{season}} · сводка за сезон",
+  "nasa.title": "NASA POWER",
+  "events.drought": "Засуха",
+  "events.heat": "Жара",
+  "events.downpour": "Ливни",
+  "events.waterDeficit": "Дефицит воды",
+  "events.none": "Без экстремальных явлений",
+  "severity.medium": "умеренно",
+  "severity.high": "сильно",
   "data.temperature": "Температура",
   "data.rainfall": "Осадки",
-  "data.soil": "Влажность почвы",
-  "data.vegetation": "Состояние растительности",
+  "data.humidity": "Влажность",
+  "data.wind": "Ветер",
+  "data.solar": "Солнечная радиация",
   "data.chip.hot": "Жарче нормы",
   "data.chip.warm": "Тепло",
   "data.chip.cool": "Прохладнее",
   "data.chip.normal": "Норма",
   "data.chip.veryDry": "Очень сухо",
   "data.chip.belowNormal": "Ниже нормы",
+  "data.chip.aboveNormal": "Выше нормы",
   "data.chip.wet": "Влажно",
-  "data.chip.dryTopsoil": "Сухой верхний слой",
-  "data.chip.moist": "Влажная",
-  "data.chip.adequate": "Достаточная",
-  "data.chip.sparse": "Редкий покров",
-  "data.chip.moderate": "Умеренный",
-  "data.chip.dense": "Густой",
-  "data.unit.tempAvg": "°C, среднее",
+  "data.chip.dryAir": "Сухой воздух",
+  "data.chip.humid": "Влажный воздух",
+  "data.chip.windy": "Ветрено",
+  "data.chip.calm": "Тихо",
+  "data.chip.cloudy": "Облачно",
+  "data.chip.sunny": "Солнечно",
   "data.unit.rain": "mm / сезон",
-  "data.vsNormalTemp": "{{value}}°C к норме",
-  "data.vsNormalPct": "{{value}}% к норме",
-  "data.avg": "среднее {{value}}",
-  "data.average20": "Среднее за 20 лет",
-  "data.gauge.dry": "Сухо",
-  "data.gauge.good": "Норма",
-  "data.gauge.wet": "Влажно",
-  "data.gauge.bare": "Голая почва",
-  "data.gauge.lush": "Густо",
-  "data.src.temperature": "NASA POWER · температура воздуха на 2 м",
-  "data.src.rainfall": "Осадки GPM IMERG",
-  "data.src.soil": "SMAP · верхние 5 см почвы",
-  "data.src.vegetation": "MODIS NDVI · пашни региона",
+  "data.unit.wind": "м/с",
+  "data.unit.solar": "МДж/м²/день",
+  "data.vsNormal": "{{value}} к норме",
+  "data.average10": "Среднее за 10 сезонов",
+  "data.src.temperature": "температура воздуха на 2 м",
+  "data.src.rainfall": "скорректированные осадки",
+  "data.src.humidity": "относительная влажность на 2 м",
+  "data.src.wind": "скорость ветра на 2 м",
+  "data.src.solar": "суммарная солнечная радиация",
   "insight.title": "Что говорят данные",
-  "obs.period": "<strong>Период наблюдений:</strong> {{period}} (среднее за сезон)",
-  "obs.area": "<strong>Район:</strong> демо-ферма, полузасушливая степь · 43,2° с. ш.",
-  "obs.note": "Норма — среднее за 2001–2020 гг. Значения иллюстративные, смоделированы по продуктам NASA для обучения и не являются прогнозом.",
+  "insight.picked": "Вы переигрываете {{what}} из последних десяти.",
+  "insight.demandUp": "Такая погода повышает потребность культур в воде примерно на {{pct}}%.",
+  "insight.demandDown": "Такая погода снижает потребность культур в воде примерно на {{pct}}%.",
+  "insight.drought": "Осадков намного меньше нормы: важны запас воды в почве и полив.",
+  "insight.heat": "Жарче нормы: теплочувствительным культурам будет тяжело.",
+  "insight.downpour": "Много дней с ливнями: ждите стока, эрозии и потери питательных веществ.",
+  "insight.waterDeficit": "Для такого сухого и жаркого сезона в водохранилище мало воды.",
+  "insight.calm": "Без экстремумов: хороший сезон, чтобы освоить основы.",
+  "obs.place": "Ферма:",
+  "obs.period": "Период:",
+  "obs.note": "Исторические данные NASA POWER (сообщество AG) в сравнении со средним за 10 сезонов в этом месте. Региональные значения, не прогноз.",
+  "obs.demo": "Демо-данные: иллюстративные значения для полузасушливой фермы. Это не измерения реального места или года.",
+  "soil.title": "Ваша почва",
+  "soil.fertility": "Плодородие",
+  "soil.moisture": "Влажность",
+  "soil.n": "Азот",
+  "soil.om": "Органика",
+  "soil.erosion": "Эрозия",
+  "soil.history": "История культур:",
+  "soil.noHistory": "пока нет",
 
   "meters.aria": "Состояние фермы",
-  "meters.health": "Здоровье посевов",
-  "meters.soil": "Здоровье почвы",
+  "meters.yield": "Урожайность",
+  "meters.fertility": "Плодородие почвы",
+  "meters.moisture": "Влажность почвы",
   "meters.water": "Запас воды",
   "meters.budget": "Бюджет",
-  "meters.sus": "Устойчивость",
 
-  "report.eyebrow": "{{season}} · итоги сезона {{n}}",
-  "report.fieldNdvi": "NDVI вашего поля",
-  "report.soil": "Почва",
-  "report.water": "Вода",
-  "report.nasaData": "Данные NASA",
+  "param.T2M": "температура (T2M)",
+  "param.PRECTOTCORR": "осадки (PRECTOTCORR)",
+  "param.RH2M": "сухой воздух (RH2M)",
+  "param.WS2M": "ветер (WS2M)",
+  "param.ALLSKY_SFC_SW_DWN": "солнце (ALLSKY)",
+  "param.none": "мягкая погода",
+  "param.reserve": "Запас",
+
+  "report.eyebrow": "Уровень {{n}} · сезон {{season}} из {{total}} · {{year}}",
+  "report.yield": "Урожайность",
+  "report.profit": "Прибыль",
+  "report.nasaData": "Данные NASA POWER",
   "report.decision": "Ваше решение",
   "report.happened": "Что произошло",
+  "report.dataLine": "{{temp}} °C · осадки {{rain}} mm · влажность {{rh}}% · ветер {{ws}} м/с · солнце {{sw}} МДж/м²/день",
+  "report.resultLine": "Урожайность {{yield}}% от потенциала. Культуре нужно было ~{{demand}} mm воды, получено ~{{supply}} mm.",
+  "report.why": "Почему — причины и следствия",
+  "report.badgeFarm": "Ферма",
   "report.science": "Научная заметка · ",
-  "report.tip": "В следующий раз · ",
-  "report.sold": "Урожай (культура «{{crop}}») продан за {{amount}}. Упрощённая модель для обучения — реальная урожайность зависит от множества местных факторов.",
+  "report.bestLabel": "Вариант лучше:",
+  "report.bestNumbers": "урожайность {{yield}}%, прибыль {{profit}}, экономия воды {{water}}",
+  "report.bestSame": "Ваш план не хуже лучшей альтернативы, найденной моделью для этого сезона. Отлично прочитали данные!",
+  "report.money": "Урожай продан за {{revenue}}; семена и ресурсы стоили {{cost}}. Упрощённая модель для обучения — реальная урожайность зависит от множества местных факторов.",
 
-  "explain.noIrrigation": "без полива",
-  "explain.irrigation": "полив: {{levelLower}} (+{{mm}} mm)",
-  "explain.noFertilizer": "без удобрения",
-  "explain.data": "<b>SMAP</b>: влажность почвы {{sm}} m³/m³ · <b>GPM</b>: осадки {{rain}} mm · <b>POWER</b>: {{temp}}°C",
-  "explain.decision": "{{crop}} + {{irrigation}} + {{fertilizer}}",
-  "explain.tempLine": " Средняя температура по NASA POWER ({{temp}}°C) вышла за комфортный для культуры «{{crop}}» диапазон {{min}}–{{max}}°C, и рост замедлился.",
-  "explain.drought.result": "Осадки, запас воды в почве и полив покрыли лишь ~{{pct}}% из ~{{demand}} mm, нужных культуре «{{crop}}». Растения закрыли устьица, экономя воду, и рост остановился.",
-  "explain.drought.sci": "Растения в стрессе закрывают устьица, и фотосинтез замедляется. Спутники фиксируют это как падение <b>NDVI</b> — часто раньше, чем листья заметно побуреют.",
-  "explain.drought.tipDry": "Если SMAP показывает влажность верхнего слоя ниже ~{{threshold}} m³/m³, выбирайте засухоустойчивую культуру (сорго, нут) или планируйте больше полива.",
-  "explain.drought.tipHeavy": "Влаголюбивым культурам вроде кукурузы здесь не хватает одних осадков. Подбирайте культуру под прогноз осадков.",
-  "explain.overwater.result": "Воды пришло ~{{pct}}% от того, что могла использовать культура «{{crop}}». Почва оставалась переувлажнённой, корням не хватало кислорода, а азот вымылся.",
-  "explain.overwater.sci": "Переувлажнённая почва вытесняет воздух, нужный корням, а лишняя вода уносит нитраты ниже корневой зоны — это потеря денег и риск для грунтовых вод.",
-  "explain.overwater.tip": "SMAP уже показывал {{sm}} m³/m³ (влажно). Выше ~{{threshold}} полив нужен редко. Во влажные сезоны выбирайте культуры, которые переносят сырую почву.",
-  "explain.lownutrients.result": "Воды хватало (~{{pct}}% потребности), но культуре «{{crop}}» нужно было больше азота, чем могла дать почва. Листья стали бледно-жёлто-зелёными.",
-  "explain.lownutrients.sci": "Азот нужен для хлорофилла. Бледные листья отражают больше красного света, поэтому NDVI падает — MODIS показал в регионе лишь {{ndvi}} в этом сезоне.",
-  "explain.lownutrients.tip": "Внесите компост или сидерат либо посейте нут — бобовые фиксируют азот из воздуха для следующей культуры.",
-  "explain.healthy.result": "Культуре «{{crop}}» хватило воды (≈ {{pct}}% потребности, в безопасном диапазоне) и азота, чтобы вырастить густой покров.",
-  "explain.healthy.sci": "Здоровые листья поглощают красный свет и отражают ближний инфракрасный. NDVI измеряет этот контраст: (NIR − Red) ÷ (NIR + Red).",
-  "explain.tip.wasted": "Вы поливали, хотя осадков и воды в почве уже хватало. В следующий раз пропустите полив, чтобы сберечь запас и деньги.",
-  "explain.tip.temp": "Для ещё лучшего роста выберите культуру, чей температурный диапазон подходит под данные NASA POWER.",
-  "explain.tip.keep": "Проверяйте влажность почвы перед каждым сезоном — условия могут быстро меняться.",
+  "reason.demand": "Культуре нужно было около {{demand}} mm воды. Погода, повысившая потребность: {{drivers}}.",
+  "reason.water.short": "Осадки ({{rain}} mm), запас воды в почве и полив покрыли лишь {{pct}}% потребности ({{supply}} из {{demand}} mm), растения закрыли устьица, и рост замедлился.",
+  "reason.water.excess": "Поле получило {{pct}}% от воды, которую могла использовать культура ({{rain}} mm осадков): переувлажнённым корням не хватало кислорода.",
+  "reason.water.ok": "Воды пришло {{pct}}% от потребности — в безопасном диапазоне (осадки {{rain}} mm).",
+  "reason.irrigation.wasted": "Около {{mm}} из {{total}} mm полива были не нужны: осадков и воды в почве уже хватало.",
+  "reason.irrigation.helped": "Полив закрыл реальный дефицит примерно в {{mm}} mm.",
+  "reason.irrigation.evaporation": "Дождевание потеряло {{pct}}% воды на испарение и снос ветром в жаркую или ветреную погоду.",
+  "reason.runoff": "За {{days}} дн. с ливнями около {{mm}} mm стекло, не успев впитаться.",
+  "reason.temp.heat": "Средние {{temp}} °C выше комфортного максимума культуры {{max}} °C: тепловой стресс.",
+  "reason.temp.cold": "Средние {{temp}} °C ниже комфортного минимума культуры {{min}} °C: медленный рост.",
+  "reason.temp.ok": "Средние {{temp}} °C — в комфортном для культуры диапазоне {{min}}–{{max}} °C.",
+  "reason.solar.low": "Всего {{value}} МДж/м²/день солнца: облачность ограничила фотосинтез.",
+  "reason.nitrogen.short": "Растения получили лишь {{pct}}% нужного азота.",
+  "reason.nitrogen.leached": "Около {{kg}} кг азота вымылось дождями ниже корней.",
+  "reason.rotation.legume": "Бобовая культура «{{prev}}» в прошлом сезоне оставила азот и прервала циклы болезней: бонус севооборота.",
+  "reason.rotation.ok": "Смена культуры после «{{prev}}» помогла прервать циклы вредителей и болезней.",
+  "reason.rotation.monoculture": "Повторный посев культуры «{{prev}}» (монокультура) накопил вредителей и болезни и истощил те же питательные вещества.",
+  "reason.disease.humid": "Тёплый влажный воздух ({{rh}}% влажности) благоприятствовал грибковым болезням.",
+  "reason.soil.fertile": "Плодородная почва ({{value}}/100) поддержала рост.",
+  "reason.soil.poor": "Бедная почва ({{value}}/100) сдерживала рост.",
+  "reason.erosion": "Ливни и ветер унесли часть верхнего слоя почвы (эрозия +{{value}}).",
+  "reason.protection.mulch": "Мульча сохранила влагу и уменьшила сток и эрозию.",
+  "reason.protection.cover": "Защитные полосы удержали почву и добавили органики.",
+  "reason.legume.fix": "Нут зафиксировал из воздуха около {{n}} кг азота для следующей культуры.",
 
-  "banner.win.title": "Урожай собран!",
-  "banner.win.text": "Ваше поле прошло все три сезона. Посмотрим, насколько устойчивыми были ваши решения.",
-  "banner.fail.title": "Неурожай",
-  "banner.fail.text": "Слишком много тяжёлых сезонов ослабили посевы. Неурожай — это тоже данные: давайте разберём, что подсказывали спутники.",
+  "science.drought": "Растения в стрессе закрывают устьица, и фотосинтез замедляется. Спутники фиксируют это как падение NDVI — часто раньше, чем листья заметно побуреют.",
+  "science.excess": "Переувлажнённая почва вытесняет воздух, нужный корням, а лишняя вода уносит нитраты ниже корневой зоны — это потеря денег и риск для грунтовых вод.",
+  "science.heat": "Выше своего температурного диапазона растения теряют воды больше, чем успевают подать корни, а ферменты работают хуже — страдает налив зерна.",
+  "science.cold": "Ниже своего температурного диапазона культуры развиваются медленно и могут не успеть налить зерно до конца сезона.",
+  "science.nitrogen": "Азот нужен для хлорофилла. Бледные листья отражают больше красного света, и NDVI падает. Бобовые живут в симбиозе с бактериями, которые превращают азот воздуха в пищу растений.",
+  "science.disease": "Многие болезни культур сохраняются в остатках той же культуры. Севооборот лишает их пищи, а тёплая влажная погода помогает им распространяться.",
+  "science.erosion": "Капли дождя разбивают голую почву, а сток уносит плодородный верхний слой. Растительный покров и мульча гасят эту энергию.",
+  "science.healthy": "Здоровые листья поглощают красный свет и отражают ближний инфракрасный. NDVI измеряет этот контраст: (NIR − Red) ÷ (NIR + Red).",
+
+  "whatif.eyebrow": "А что если · {{season}}",
+  "whatif.title": "Сравните с другим планом",
+  "whatif.yours": "Ваше решение",
+  "whatif.alternative": "Альтернатива",
+  "whatif.crop": "Культура",
+  "whatif.irrigationSel": "Полив",
+  "whatif.method": "Способ",
+  "whatif.fertilizer": "Удобрение",
+  "whatif.protection": "Защита почвы",
+  "whatif.useBest": "Лучший вариант",
+  "whatif.metric": "Результат",
+  "whatif.yield": "Урожайность",
+  "whatif.profit": "Прибыль",
+  "whatif.irrigation": "Доставлено поливом",
+  "whatif.reserveUsed": "Израсходовано запаса",
+  "whatif.waterScore": "Оценка экономии воды",
+  "whatif.fertility": "Изменение плодородия",
+  "whatif.erosion": "Прирост эрозии",
+  "whatif.leached": "Вымыто азота (кг)",
+  "whatif.state": "Состояние поля",
+  "whatif.unaffordable": "Эта альтернатива дороже, чем позволяли бюджет или запас воды в этом сезоне.",
+  "whatif.note": "Только симуляция — тот же сезон NASA POWER и та же исходная почва. Сохранённый прогресс не меняется.",
+
+  "banner.win.title": "Уровень пройден!",
+  "banner.win.text": "Все цели выполнены. Посмотрим, сколько звёзд принесли ваши решения.",
+  "banner.fail.title": "Уровень не пройден",
+  "banner.fail.text": "Часть целей не выполнена. Неудачный сезон — это тоже данные: посмотрим, что подсказывали цифры.",
+  "banner.fail.bankrupt": "У фермы закончились деньги на семена. Посмотрим, куда ушёл бюджет.",
+
+  "result.eyebrow": "Итоги уровня {{n}}",
+  "result.passed": "Уровень пройден",
+  "result.failed": "Уровень не пройден",
+  "result.passedText": "Цель выполнена · звёзд: {{stars}} из 3",
+  "result.failedText": "Не все цели выполнены. Посмотрите рекомендации и попробуйте снова.",
+  "result.bankrupt": "Банкротство: бюджет упал ниже {{min}} — не хватает даже на семена.",
+  "result.goals": "Цели",
+  "result.categories": "Оценки",
+  "result.cat.yield": "Урожайность",
+  "result.cat.water": "Экономия воды",
+  "result.cat.soil": "Здоровье почвы",
+  "result.cat.target": "★ от {{value}}",
+  "result.cat.soilTarget": "плодородие {{delta}} · ★ от {{value}}",
+  "result.totals": "Итоги фермы",
+  "result.profit": "Прибыль",
+  "result.revenue": "Продажа урожая",
+  "result.avgYield": "Средняя урожайность",
+  "result.irrigation": "Полив",
+  "result.wasted": "Лишний полив",
+  "result.reserveUsed": "Израсходовано запаса",
+  "result.reserveEnd": "Осталось в запасе",
+  "result.soil": "Изменения почвы",
+  "result.leached": "Вымыто азота",
+  "result.seasons": "По сезонам",
+  "result.recommendations": "Рекомендации",
+  "result.bestPlan": "Лучший план по модели",
+  "result.bestPlanScore": "Этот план даёт {{stars}} ★, счёт {{score}}, прибыль {{profit}}.",
+  "result.noPlan": "Для этого уровня нет доступного по бюджету плана.",
+  "result.provenance": "Данные: {{source}} · {{place}}.",
+
+  "rec.droughtCrop": "Если NASA POWER показывает мало осадков и высокую температуру, выбирайте засухоустойчивое сорго или нут либо закладывайте воду на полив.",
+  "rec.checkRain": "Перед поливом проверяйте осадки и влажность почвы: часть полива была не нужна.",
+  "rec.slowFertilizer": "Во влажные сезоны используйте компост или сидераты вместо минерального азота, который вымывают ливни.",
+  "rec.protectSoil": "Мульча или защитные полосы защищают голую почву от ливневой и ветровой эрозии.",
+  "rec.rotate": "Чередуйте культуры: повторный посев копит болезни и истощает одни и те же питательные вещества.",
+  "rec.addNitrogen": "Урожай сдерживал недостаток азота: внесите компост или сидерат либо сначала посейте бобовые.",
+  "rec.heatCrop": "Подбирайте культуру под температуру NASA POWER: у каждой свой комфортный диапазон.",
+  "rec.costs": "План стоил больше, чем принёс урожай: не тратьтесь на то, что по данным не нужно.",
+  "rec.drip": "В жаркую ветреную погоду капельный полив даёт больше воды на единицу запаса, чем дождевание.",
+  "rec.buildSoil": "Плодородие упало: бобовые, компост и покровные культуры восстановят его для будущих сезонов.",
+  "rec.gridNote": "NASA POWER описывает климат региона, а не вашего поля: настоящие фермеры сочетают эти данные с собственными наблюдениями.",
+
+  "farm.open": "Отчёт по ферме",
+  "farm.eyebrow": "Отчёт по всей ферме · звёзды",
+  "farm.completed": "Пройдено уровней: {{n}} из {{total}}",
+  "farm.levels": "Лучший результат по уровням",
+  "farm.level": "Уровень",
+  "farm.stars": "Звёзды",
+  "farm.data": "Данные",
+  "farm.totalProfit": "Прибыль в лучших попытках",
+  "farm.totalIrrigation": "Полив в лучших попытках",
+  "farm.weak.yield": "Слабое место — урожайность: сначала подбирайте культуру под температуру и воду сезона.",
+  "farm.weak.water": "Слабое место — экономия воды: поливайте только разницу между потребностью культуры и осадками с запасом почвы.",
+  "farm.weak.soil": "Слабое место — здоровье почвы: чередуйте с бобовыми и держите почву укрытой.",
+  "farm.lesson.1": "Осадки (PRECTOTCORR) и запас воды в почве задают основу; жара (T2M), сухой воздух (RH2M), ветер (WS2M) и солнце повышают потребность культур в воде.",
+  "farm.lesson.2": "Засухоустойчивые культуры и капельный полив растягивают небольшой запас воды дальше всего.",
+  "farm.lesson.3": "Бобовые, например нут, добавляют азот для следующей культуры; монокультура истощает почву и привлекает болезни.",
+  "farm.lesson.4": "Во влажные сезоны укрывайте почву и избегайте быстрых удобрений, чтобы не допустить эрозии и вымывания.",
+  "farm.lesson.5": "Спутниковые и модельные данные NASA POWER региональны: сочетайте их с тем, что видите на своём поле.",
+  "farm.reset": "Сбросить прогресс",
+  "farm.resetConfirm": "Сбросить прогресс и звёзды по всем уровням? Это действие нельзя отменить.",
 
   "final.rank.master": "Навигатор-мастер",
   "final.rank.skilled": "Опытный навигатор",
   "final.rank.growing": "Растущий навигатор",
   "final.rank.rookie": "Навигатор-новичок",
-  "final.scoreLabel": "Итоговый счёт устойчивости",
-  "final.success": "Успешный урожай · среднее здоровье посевов {{avg}}%",
-  "final.fail": "Неурожай · среднее здоровье посевов {{avg}}% (нужно 60%)",
-  "final.seasons": "Ваши три сезона",
-  "final.breakdown": "Из чего сложился счёт",
-  "final.avgHealth": "Ср. здоровье посевов",
-  "final.finalBudget": "Итоговый бюджет",
-  "final.profit": "Бонус за прибыль",
-  "final.loss": "Штраф за убыток",
-  "final.badges": "Значки",
   "final.lessons": "Чему научили данные NASA",
-  "final.disclaimer": "Farm Navigator использует упрощённую модель посевов и иллюстративные данные на основе NASA POWER, GPM, SMAP и MODIS.<br>Игра учит читать наблюдения Земли, но не предсказывает реальные урожаи.",
+  "final.disclaimer": "Farm Navigator использует упрощённую детерминированную модель посевов и исторические данные NASA POWER. Игра учит читать наблюдения Земли — это не прогноз урожая и не агрономический совет.",
 
-  "badges.water.name": "Бережливость",
-  "badges.water.desc": "Ни разу не поливали уже влажную почву",
-  "badges.soil.name": "Страж почвы",
-  "badges.soil.desc": "Здоровье почвы в финале 70+",
-  "badges.data.name": "Опора на данные",
-  "badges.data.desc": "Ни засухи, ни переувлажнения",
-  "badges.heat.name": "Жаре вопреки",
-  "badges.heat.desc": "Здоровые посевы в летнюю жару",
-  "badges.legume.name": "Друг бобовых",
-  "badges.legume.desc": "Посеяна азотфиксирующая бобовая культура",
-
-  "lessons.drought": "Влажность почвы по SMAP ниже ~{{threshold}} m³/m³ и мало осадков по GPM — признак риска засухи: выбирайте устойчивые культуры или закладывайте воду в бюджет.",
-  "lessons.overwater": "Если почва уже влажная, а осадков больше нормы, лишний полив тратит воду впустую и вымывает питательные вещества.",
-  "lessons.nutrients": "Падение NDVI при достатке воды может указывать на нехватку питания. Бобовые и компост восстанавливают азот в почве.",
-  "lessons.temperature": "Температура NASA POWER подсказывает, какие культуры подходят сезону: у каждой свой комфортный диапазон.",
-  "lessons.ndvi": "NDVI сравнивает ближний инфракрасный и красный свет и показывает из космоса, насколько зелёные и густые посевы.",
+  "toast.offline": "Нет сети. Сохранённые данные NASA по-прежнему доступны.",
+  "toast.online": "Сеть снова доступна.",
+  "toast.staleCache": "Используется сохранённая копия данных NASA ({{reason}}).",
+  "toast.nextSeason": "Сезон {{n}} · {{season}}: сначала изучите новые данные.",
 
   "tut.step": "Как играть · {{n}} из {{total}}",
   "tut.welcome.title": "Добро пожаловать, навигатор!",
-  "tut.welcome.body": "Три сезона вы управляете небольшой фермой. Цель — вырастить здоровый урожай, сберегая почву, воду и бюджет.",
-  "tut.welcome.chip1": "3 сезона",
+  "tut.welcome.body": "Выберите реальное место для фермы. Семь уровней переигрывают там реальные прошлые сезоны — типичный год, засуху, жару, ливни, — и у каждого своя цель.",
+  "tut.welcome.chip1": "7 уровней",
   "tut.welcome.chip2": "4 культуры",
-  "tut.welcome.chip3": "1 ферма",
-  "tut.sky.title": "Сначала — взгляд с орбиты",
-  "tut.sky.body": "Панель «Данные NASA» показывает, что увидели спутники: температуру, осадки, влажность почвы и состояние растительности. Сравнивайте каждое значение с нормой.",
-  "tut.decide.title": "Примите решение",
-  "tut.decide.body": "Выберите подходящую культуру, настройте полив и удобрение. Каждое решение стоит денег, а некоторые — ещё и здоровья планеты.",
+  "tut.welcome.chip3": "Реальные данные NASA",
+  "tut.sky.title": "Сначала — данные",
+  "tut.sky.body": "Панель NASA POWER показывает температуру, осадки, влажность, ветер и солнце за сезон в сравнении с нормой за 10 сезонов. Засуха или ливни отмечаются отдельно.",
+  "tut.decide.title": "Примите решения",
+  "tut.decide.body": "Выберите культуру, полив (и способ) и удобрение — все три обязательны. Защита почвы — по желанию. Следите за бюджетом, запасом воды и тем, что росло в прошлом сезоне.",
   "tut.decide.chip1": "Культура",
   "tut.decide.chip2": "Полив",
   "tut.decide.chip3": "Удобрение",
-  "tut.watch.title": "Наблюдайте и учитесь",
-  "tut.watch.body": "Поле реагирует: здоровые посевы, засуха, переувлажнение или нехватка питания. После каждого сезона вы увидите, как данные NASA объясняют результат.",
-  "tut.watch.chip1": "Баланс 5 показателей",
-  "tut.watch.chip2": "До 3 звёзд",
+  "tut.decide.chip4": "Защита почвы",
+  "tut.watch.title": "Учитесь на каждом сезоне",
+  "tut.watch.body": "После сезона вы увидите причины результата, связанные с данными NASA, вариант получше и сравнение «А что если». До 3 звёзд — за урожай, экономию воды и здоровье почвы.",
+  "tut.watch.chip1": "Причины и следствия",
+  "tut.watch.chip2": "А что если",
+  "tut.watch.chip3": "До 3 звёзд",
 
   "pause.title": "Пауза",
-  "pause.text": "Поле подождёт. Спутники продолжают свой путь по орбите.",
-
-  "dock.toggle": "Состояния дизайна",
-  "dock.screens": "Экраны",
-  "dock.fieldStates": "Состояния поля",
-  "dock.loading": "Загрузка",
-  "dock.error": "Ошибка",
-  "dock.tutorial": "Обучение",
-  "dock.game": "Игровая панель",
-  "dock.finalWin": "Итог · успех",
-  "dock.finalFail": "Итог · неудача",
-  "dock.report": "Отчёт за сезон"
+  "pause.text": "Поле подождёт. Спутники продолжают свой путь по орбите."
 }
 </script>
 
-<script>
-/* =========================================================
-   I18N
-   ========================================================= */
-const I18N = {
-  en: JSON.parse(document.getElementById('i18n-en').textContent),
-  ru: JSON.parse(document.getElementById('i18n-ru').textContent),
-};
-let LANG = FarmPrefs.get().resolvedLanguage;
-function t(key, vars){
-  let s = I18N[LANG] && I18N[LANG][key];
-  if(s == null){ s = I18N.en[key]; console.warn(`[i18n] missing "${key}" for "${LANG}"`); }
-  if(s == null){ console.error(`[i18n] unknown key "${key}"`); return ''; }
-  return vars ? s.replace(/\{\{(\w+)\}\}/g, (m,k)=> k in vars ? vars[k] : m) : s;
-}
-const locale = ()=> LANG==='ru' ? 'ru-RU' : 'en-US';
-const num = n => Number(n).toLocaleString(locale());
-const dec = (n, d=2) => Number(n).toLocaleString(locale(), { minimumFractionDigits:d, maximumFractionDigits:d });
-const dec1 = n => Number(n).toLocaleString(locale(), { maximumFractionDigits:1 });
-const lower = s => s.toLocaleLowerCase(locale());
-function applyStaticI18n(root=document){
-  root.querySelectorAll('[data-i18n]').forEach(n=>{ n.textContent = t(n.dataset.i18n); });
-  root.querySelectorAll('[data-i18n-attr]').forEach(n=>{
-    n.dataset.i18nAttr.split(';').forEach(pair=>{ const [attr,key]=pair.split(':'); n.setAttribute(attr.trim(), t(key.trim())); });
-  });
-  if(root===document){
-    document.title = t('meta.title');
-    document.querySelector('meta[name="description"]').setAttribute('content', t('meta.description'));
-  }
-}
-
-/* =========================================================
-   ICONS
-   ========================================================= */
-const P = (d, extra='') => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${d}</svg>`;
-const IC = {
-  check: P('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
-  help: P('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.3a2.6 2.6 0 015 1c0 1.8-2.5 2.2-2.5 3.7"/><circle cx="12" cy="17.2" r=".6" fill="currentColor"/>'),
-  pause: P('<rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/>'),
-  play: P('<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>'),
-  refresh: P('<path d="M20 11a8 8 0 00-14.3-4.6L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0014.3 4.6L20 16"/><path d="M20 20v-4h-4"/>'),
-  map: P('<path d="M9 4L3 6.5v13L9 17l6 2.5 6-2.5v-13L15 6.5z"/><path d="M9 4v13M15 6.5v13"/>'),
-  flag: P('<path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5" fill="currentColor"/>'),
-  sprout: P('<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7.5-6.5 0 4.2-3 6.5-7.5 6.5z"/><path d="M12 14.5C12 11 9.5 9 5 9c0 3.6 2.6 5.5 7 5.5z"/>'),
-  leaf: P('<path d="M5 19c0-8 5-13.5 15-14-0.5 10-6 15-14 15"/><path d="M5 19l7-7"/>'),
-  soil: P('<path d="M3 9h18M3 14h18M3 19h18"/><path d="M8 9V5M12 9V3.5M16 9V5"/>'),
-  drop: P('<path d="M12 3.5s6.5 7 6.5 11.2A6.5 6.5 0 015.5 14.7C5.5 10.5 12 3.5 12 3.5z"/>'),
-  dropFill: '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5s7 7.4 7 12a7 7 0 01-14 0c0-4.6 7-12 7-12z"/></svg>',
-  coin: P('<circle cx="12" cy="12" r="8.5"/><path d="M14.8 9.2c-.5-.9-1.6-1.4-2.8-1.4-1.6 0-2.8.8-2.8 2.1 0 2.9 5.8 1.6 5.8 4.3 0 1.3-1.3 2.1-3 2.1-1.3 0-2.4-.5-2.9-1.5M12 6.3v1.5M12 16.3v1.4"/>'),
-  globe: P('<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.7 3.6 5.5 3.6 8.5s-1 5.8-3.6 8.5c-2.6-2.7-3.6-5.5-3.6-8.5s1-5.8 3.6-8.5z"/>'),
-  recycle: P('<path d="M7.5 10.5L5 15h6"/><path d="M9.5 6.8l2-3.3 3.6 6"/><path d="M16 16.8h4.6l-3.1-5.4"/><path d="M5 15l2.6 4.5h5.2M11.5 3.5L9 7.8M20.6 16.8l-2.5 2.7"/>'),
-  thermo: P('<path d="M14 14.8V5a2 2 0 00-4 0v9.8a4 4 0 104 0z"/><path d="M12 9v7.5"/>'),
-  rain: P('<path d="M7 15a4.5 4.5 0 01.6-9A5.5 5.5 0 0118 7.5a3.8 3.8 0 01-.5 7.5H7z"/><path d="M8.5 18l-1 2.5M12.5 18l-1 2.5M16.5 18l-1 2.5"/>'),
-  sun: P('<circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/>'),
-  moon: P('<path d="M19.5 14.5A8 8 0 019.5 4.5a8 8 0 1010 10z"/>'),
-  monitor: P('<rect x="3" y="4" width="18" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/>'),
-  chevron: P('<path d="M6.5 9.5l5.5 5.5 5.5-5.5"/>'),
-  menu: P('<path d="M4.5 7h15M4.5 12h15M4.5 17h15"/>'),
-  cloud: P('<path d="M7 18a4.5 4.5 0 01.6-9A5.5 5.5 0 0118 10.5a3.8 3.8 0 01-.5 7.5H7z"/>'),
-  heat: P('<circle cx="12" cy="9" r="3.6"/><path d="M12 2.5v1.6M5.8 5l1.1 1.1M18.2 5l-1.1 1.1M3.5 11h1.6M18.9 11h1.6"/><path d="M4 16c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0M4 20c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0"/>'),
-  ndvi: P('<rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" fill="currentColor"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/>'),
-  satellite: P('<rect x="9.2" y="9.2" width="5.6" height="5.6" rx="1" transform="rotate(45 12 12)"/><path d="M6.5 6.5L3.5 3.5M4 9l5-5M17.5 17.5l3 3M15 20l5-5"/><path d="M15.5 8.5l2-2"/>'),
-  'satellite-white': '<svg viewBox="0 0 40 40" width="36" height="36" aria-hidden="true"><circle cx="20" cy="20" r="19" fill="rgba(255,255,255,.14)"/><g transform="rotate(-30 20 20)"><rect x="16" y="15" width="8" height="10" rx="2" fill="#fff"/><rect x="5" y="16.5" width="9" height="7" rx="1" fill="#8FC1FF"/><rect x="26" y="16.5" width="9" height="7" rx="1" fill="#8FC1FF"/><path d="M14 20h2M24 20h2" stroke="#fff" stroke-width="1.6"/><path d="M20 25v4" stroke="#fff" stroke-width="1.6"/><circle cx="20" cy="30" r="1.8" fill="#FFD35C"/></g></svg>',
-  'satellite-color': '<svg viewBox="0 0 40 40" aria-hidden="true"><g transform="rotate(20 20 20)"><rect x="15.5" y="14" width="9" height="12" rx="2.2" fill="#0B3D91"/><rect x="3" y="16" width="11" height="8" rx="1.2" fill="#1E6FD9"/><path d="M6.5 16v8M10 16v8" stroke="#8FC1FF" stroke-width="1"/><rect x="26" y="16" width="11" height="8" rx="1.2" fill="#1E6FD9"/><path d="M29.5 16v8M33 16v8" stroke="#8FC1FF" stroke-width="1"/><path d="M14 20h1.5M24.5 20h1.5" stroke="#0B3D91" stroke-width="2"/><circle cx="20" cy="29" r="2.2" fill="#FFD35C"/></g></svg>',
-  logo: '<svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><circle cx="16" cy="16" r="12.5" fill="none" stroke="#9FD39A" stroke-width="2.4"/><path d="M16 6.5l3.2 9.5L16 25.5 12.8 16z" fill="#fff"/><path d="M16 6.5l3.2 9.5H12.8z" fill="#FFD35C"/><path d="M16 21c0-3.2 2.2-5.2 5.6-5.2 0 3.2-2.3 5.2-5.6 5.2z" fill="#9FD39A"/></svg>',
-  alert: P('<path d="M12 3.5L2.8 19.5h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>'),
-  flask: P('<path d="M9.5 3.5h5M10.5 3.5v5.5L5 19a1.5 1.5 0 001.3 2h11.4a1.5 1.5 0 001.3-2l-5.5-10V3.5"/><path d="M7.5 15h9"/>'),
-  compost: P('<path d="M4 20c1-5 4-7.5 8-7.5s7 2.5 8 7.5z"/><path d="M9 12.8c.5-3 2-5 5-6.3M12 8.5c-1.5-1.3-3.5-1.6-5.5-1"/>'),
-  none: P('<circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/>'),
-  legume: P('<path d="M6 17c-1.8-4.5 1-10 7-11.5 3.5-.8 5.5.5 5 2.5-.6 2.2-4.3 1.8-6.5 4.5S9.5 19.5 6 17z"/><circle cx="10.2" cy="13" r="1" fill="currentColor"/><circle cx="13" cy="10" r="1" fill="currentColor"/>'),
-  star: P('<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"/>'),
-  trophy: P('<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H4.5c0 3 1.5 4.5 3.7 4.8M16 6h3.5c0 3-1.5 4.5-3.7 4.8M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/>'),
-  x: P('<path d="M6 6l12 12M18 6L6 18"/>'),
-  arrow: P('<path d="M5 12h14M13 6l6 6-6 6"/>'),
-  grid: P('<rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/>'),
-  bulb: P('<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0012 3z"/>'),
-  atom: P('<circle cx="12" cy="12" r="1.6" fill="currentColor"/><ellipse cx="12" cy="12" rx="9" ry="3.8"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="3.8" transform="rotate(-60 12 12)"/>'),
-  farmer: P('<circle cx="12" cy="9" r="3.5"/><path d="M6.5 7.5h11M8 7.5c.4-2.3 2-3.8 4-3.8s3.6 1.5 4 3.8"/><path d="M5 20.5c.8-3.8 3.6-5.8 7-5.8s6.2 2 7 5.8"/>'),
-  basket: P('<path d="M3.5 10h17l-2 9.5h-13z"/><path d="M8 10l3-5.5M16 10l-3-5.5M9 13.5v3M12 13.5v3M15 13.5v3"/>'),
-};
-function hydrateIcons(root=document){ root.querySelectorAll('[data-ic]').forEach(n=>{ if(!n.dataset.done){ n.insertAdjacentHTML('afterbegin', IC[n.dataset.ic]||''); n.dataset.done=1; } }); }
-const $ = id => document.getElementById(id);
-const fmt$ = n => (n<0?'−$':'$') + num(Math.abs(Math.round(n)));
-const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
-const sign = n => n>0?'+'+n:(n<0?'−'+Math.abs(n):'±0');
-
-/* =========================================================
-   GAME DATA
-   Values are illustrative scenario data modeled on NASA products
-   (NASA POWER, GPM IMERG, SMAP, MODIS). Not a real forecast.
-   User-facing text lives in the translation files; the getters
-   below read it in the current language.
-   ========================================================= */
-const SEASONS = [
-  { id:'spring', year:2026, weather:'showers',
-    temp:16, tempAvg:14.8, rain:62, rainAvg:55, sm:0.31, smAvg:0.28, ndvi:0.42, ndviAvg:0.45, irrMul:1 },
-  { id:'summer', year:2026, weather:'heat',
-    temp:31, tempAvg:26.5, rain:12, rainAvg:40, sm:0.12, smAvg:0.21, ndvi:0.35, ndviAvg:0.58, irrMul:1.4 },
-  { id:'autumn', year:2026, weather:'rain',
-    temp:14, tempAvg:13.2, rain:78, rainAvg:60, sm:0.33, smAvg:0.27, ndvi:0.40, ndviAvg:0.44, irrMul:1 },
-];
-const CROPS = {
-  wheat:   { water:110, temp:[12,24], uptake:18, seed:900,  price:2600, drops:2, soil:-1 },
-  maize:   { water:170, temp:[18,32], uptake:28, seed:1400, price:3800, drops:3, soil:-4 },
-  sorghum: { water:100, temp:[20,36], uptake:16, seed:800,  price:2300, drops:1, soil:0,  tol:true },
-  chickpea:{ water:95,  temp:[15,28], uptake:-10,seed:1000, price:2900, drops:1, soil:5,  tol:true, legume:true },
-};
-const IRR = [
-  { id:'off', mm:0 }, { id:'low', mm:35 }, { id:'medium', mm:70 }, { id:'high', mm:105 },
-];
-const IRR_COST = 250, IRR_RESERVE = 10;
-const FERTS = {
-  none:      { n:0,  soil:0,  sus:0,  cost:0,   ic:'none',    bg:'#B7A68A' },
-  compost:   { n:14, soil:8,  sus:4,  cost:600, ic:'compost', bg:'#8C5E3C' },
-  synthetic: { n:30, soil:-3, sus:-8, cost:500, ic:'flask',   bg:'#7A5AA6' },
-  green:     { n:12, soil:6,  sus:6,  cost:450, ic:'legume',  bg:'#3E9B4F' },
-};
-const STATES = {
-  planning:     { color:'#6D8A5E', ic:'sprout' },
-  healthy:      { color:'#3E9B4F', ic:'leaf' },
-  drought:      { color:'#D07A1E', ic:'heat' },
-  overwater:    { color:'#1E6FD9', ic:'rain' },
-  lownutrients: { color:'#7A5AA6', ic:'soil' },
-  harvest:      { color:'#C9971B', ic:'basket' },
-  failed:       { color:'#8E2A1F', ic:'x' },
-};
-const WEATHER = {
-  showers:{ ic:'rain' }, heat:{ ic:'heat' }, rain:{ ic:'rain' }, clear:{ ic:'sun' }, cloudy:{ ic:'cloud' },
-};
-function translated(target, fields){
-  Object.entries(fields).forEach(([prop,key])=>Object.defineProperty(target, prop, { get:()=>t(key), enumerable:true }));
-}
-SEASONS.forEach(s=>translated(s, { name:`seasons.${s.id}.name`, period:`seasons.${s.id}.period`, mission:`seasons.${s.id}.mission`, insight:`seasons.${s.id}.insight` }));
-Object.entries(CROPS).forEach(([id,c])=>translated(c, { name:`crops.${id}.name`, tag:`crops.${id}.tag` }));
-IRR.forEach(o=>translated(o, { label:`irrigation.${o.id}` }));
-Object.entries(FERTS).forEach(([id,f])=>translated(f, { name:`fertilizers.${id}.name`, desc:`fertilizers.${id}.desc` }));
-Object.entries(STATES).forEach(([id,s])=>translated(s, { label:`states.${id}` }));
-Object.entries(WEATHER).forEach(([id,w])=>translated(w, { text:`weather.${id}` }));
-
-/* =========================================================
-   STATE
-   ========================================================= */
-let G;
-function newGame(){
-  G = { season:0, crop:'wheat', irr:0, fert:'none', phase:'plan', soilN:50,
-        m:{ health:null, soil:60, water:100, budget:10000, sus:50 }, history:[] };
-}
-newGame();
-
-/* =========================================================
-   CROP ART (SVG, base at 0,0)
-   ========================================================= */
-const PLANT = {
-  wheat:`<ellipse cx="0" cy="1" rx="8" ry="3" fill="rgba(0,0,0,.14)"/>
-    <path class="st" d="M0 0C-1-12-3-21-6.5-30"/><path class="st" d="M0 0C0-13 0-24 0-35"/><path class="st" d="M0 0C1-12 3-21 6.5-29"/>
-    <path class="lf" d="M0-7Q-10-13-13-7Q-6-8 0-4.5Z"/><path class="lf" d="M0-12Q9-18 12-12Q6-13 0-9.5Z"/>
-    <ellipse class="hd" cx="-7.5" cy="-34" rx="2.8" ry="6.2" transform="rotate(-14 -7.5 -34)"/>
-    <ellipse class="hd" cx="0" cy="-39.5" rx="3" ry="6.8"/>
-    <ellipse class="hd" cx="7.5" cy="-33" rx="2.8" ry="6.2" transform="rotate(14 7.5 -33)"/>`,
-  maize:`<ellipse cx="0" cy="1" rx="9" ry="3.2" fill="rgba(0,0,0,.14)"/>
-    <rect class="ld" x="-1.8" y="-48" width="3.6" height="48" rx="1.6"/>
-    <path class="lf" d="M0-10Q-15-17-19-7Q-10-11 0-7Z"/><path class="lf" d="M0-20Q15-29 20-18Q10-23 0-17Z"/>
-    <path class="lf" d="M0-31Q-13-40-17-31Q-8-34 0-28Z"/><path class="lf" d="M0-40Q10-48 14-42Q7-43 0-37Z"/>
-    <ellipse class="hd" cx="4" cy="-25" rx="2.8" ry="6.5" transform="rotate(10 4 -25)"/>
-    <path d="M0-48l-3.5-6M0-48v-7.5M0-48l3.5-6" stroke="var(--head)" stroke-width="1.6" stroke-linecap="round"/>`,
-  sorghum:`<ellipse cx="0" cy="1" rx="8" ry="3" fill="rgba(0,0,0,.14)"/>
-    <rect class="ld" x="-1.5" y="-36" width="3" height="36" rx="1.4"/>
-    <path class="lf" d="M0-9Q-13-15-16-6Q-8-10 0-6Z"/><path class="lf" d="M0-18Q13-25 16-16Q8-20 0-15Z"/><path class="lf" d="M0-27Q-10-33-13-26Q-6-28 0-24Z"/>
-    <ellipse class="hd2" cx="0" cy="-42" rx="5.4" ry="8.4"/>
-    <circle cx="-2" cy="-45" r="1.3" fill="rgba(255,255,255,.35)"/><circle cx="2" cy="-40" r="1.3" fill="rgba(255,255,255,.3)"/>`,
-  chickpea:`<ellipse cx="0" cy="1" rx="11" ry="3.6" fill="rgba(0,0,0,.14)"/>
-    <path class="st" d="M0 0V-9"/>
-    <circle class="ld" cx="-7.5" cy="-9" r="7"/><circle class="ld" cx="7" cy="-8" r="6.5"/>
-    <circle class="lf" cx="5.5" cy="-12" r="7.5"/><circle class="lf" cx="-4" cy="-14" r="7"/><circle class="lf" cx="1" cy="-19" r="7.2"/>
-    <ellipse class="hd" cx="4.5" cy="-14" rx="2.3" ry="1.6"/><ellipse class="hd" cx="-5" cy="-11" rx="2.3" ry="1.6"/><ellipse class="hd" cx="0" cy="-21" rx="2.3" ry="1.6"/>`,
-};
-function cropIcon(id){
-  return `<svg class="art" viewBox="-26 -60 52 64" aria-hidden="true" style="--leaf:#3FA24F;--leaf-dark:#277A38;--head:#D9BE52;--head2:#B8533A">
-    <g class="fieldsvg-mini">${PLANT[id].replace(/class="lf"/g,'fill="var(--leaf)"').replace(/class="ld"/g,'fill="var(--leaf-dark)"').replace(/class="hd2"/g,'fill="var(--head2)"').replace(/class="hd"/g,'fill="var(--head)"').replace(/class="st"/g,'stroke="var(--leaf-dark)" fill="none" stroke-width="2" stroke-linecap="round"')}</g></svg>`;
-}
-
-/* =========================================================
-   FIELD RENDER
-   ========================================================= */
-const N=6, TW=80, TH=40, OX=300, OY=112;
-const tileXY = (i,j)=>[OX+(i-j)*TW/2, OY+(i+j)*TH/2];
-let rand = (s=>()=>{s=(s*16807)%2147483647;return s/2147483647})(42);
-const tileNoise = [];
-function buildField(){
-  const svg = $('field');
-  let g = '';
-  // meadow
-  const gT=[300,64], gR=[592,210], gB=[300,356], gL=[8,210];
-  g += `<polygon class="grass-side" points="${gL} ${gB} ${gB[0]},${gB[1]+20} ${gL[0]},${gL[1]+20}"/>`;
-  g += `<polygon class="grass-side" points="${gB} ${gR} ${gR[0]},${gR[1]+20} ${gB[0]},${gB[1]+20}" style="filter:brightness(.88)"/>`;
-  g += `<polygon class="grass" points="${gT} ${gR} ${gB} ${gL}"/>`;
-  // decor behind field
-  g += barn(470,166) + tank(128,168);
-  // tiles
-  let tiles='', ndvi='', furrows='', puddles='', cracks='';
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
-    const [x,y]=tileXY(i,j);
-    const pts=`${x},${y-TH/2} ${x+TW/2},${y} ${x},${y+TH/2} ${x-TW/2},${y}`;
-    tiles += `<polygon class="tile" points="${pts}"/>`;
-    const nz = rand()*2-1; tileNoise.push(nz);
-    ndvi += `<polygon class="ndvi-tile" data-n="${nz.toFixed(3)}" points="${pts}"/>`;
-    furrows += `<path class="furrow" d="M${x-26},${y-5} L${x-2},${y-17} M${x-14},${y+7} L${x+14},${y-7} M${x+2},${y+17} L${x+26},${y+5}"/>`;
-    if(rand()<.38){ puddles += `<ellipse class="puddle" cx="${x+rand()*16-8}" cy="${y+rand()*6-3}" rx="${14+rand()*8}" ry="${5+rand()*2.5}"/><ellipse class="puddle-hl" cx="${x-4}" cy="${y-1}" rx="5" ry="1.6"/>`; }
-    if(rand()<.55){ const cx=x+rand()*20-10, cy=y+rand()*8-4; cracks += `<path class="crack" d="M${cx-12},${cy} l6,-2 l4,3 l6,-3 l5,2 M${cx-2},${cy+1} l-2,5 M${cx+8},${cy-2} l3,-5"/>`; }
-  }
-  g += `<g>${tiles}</g><g>${furrows}</g><g>${cracks}</g><g>${puddles}</g><g>${ndvi}</g><g class="plants" id="plants"></g>`;
-  // decor in front
-  g += tree(78,246) + tree(532,262,.85) + fence();
-  // sparkles
-  let sp=''; for(let k=0;k<16;k++){ const [x,y]=tileXY(rand()*N,rand()*N); sp += `<path class="spark" style="--d:${(rand()*1.6).toFixed(2)}s" d="M${x},${y-60} l2.5,6 6,2.5 -6,2.5 -2.5,6 -2.5,-6 -6,-2.5 6,-2.5z"/>`; }
-  g += `<g>${sp}</g>`;
-  svg.innerHTML = g;
-  renderPlants();
-}
-function barn(x,y){
-  return `<g transform="translate(${x},${y})">
-    <ellipse cx="0" cy="2" rx="34" ry="9" fill="rgba(0,0,0,.12)"/>
-    <polygon points="-30,-2 0,12 0,-24 -30,-38" fill="#B5412F"/><polygon points="0,12 26,-1 26,-37 0,-24" fill="#94321F"/>
-    <polygon points="-30,-38 -15,-58 12,-45 0,-24" fill="#5A3A2A"/><polygon points="0,-24 12,-45 26,-37" fill="#452C20"/>
-    <polygon points="-20,-4 -8,2 -8,-18 -20,-24" fill="#fff" opacity=".9"/><path d="M-20,-24 L-8,2 M-8,-18 L-20,-4" stroke="#B5412F" stroke-width="2"/>
-  </g>`;
-}
-function tank(x,y){
-  return `<g transform="translate(${x},${y})" data-i18n-attr="aria-label:field.tank" aria-label="${t('field.tank')}">
-    <ellipse cx="0" cy="2" rx="20" ry="6" fill="rgba(0,0,0,.12)"/>
-    <rect x="-16" y="-46" width="32" height="46" rx="4" fill="#DCE6EE"/>
-    <clipPath id="tclip"><rect x="-13" y="-43" width="26" height="40" rx="3"/></clipPath>
-    <rect x="-13" y="-43" width="26" height="40" rx="3" fill="#B9C8D4"/>
-    <rect class="tank-water" id="tank-water" clip-path="url(#tclip)" x="-13" y="-43" width="26" height="40" fill="#3B8EDB"/>
-    <ellipse cx="0" cy="-46" rx="16" ry="4.5" fill="#EEF3F7"/>
-    <path d="M-16,-30h32M-16,-15h32" stroke="#AEBBC6" stroke-width="1.5"/>
-  </g>`;
-}
-function tree(x,y,s=1){
-  return `<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="2" rx="18" ry="5" fill="rgba(0,0,0,.14)"/><rect x="-3" y="-20" width="6" height="22" rx="2" fill="#6B4428"/>
-    <circle cx="-8" cy="-26" r="12" class="ld"/><circle cx="8" cy="-28" r="12" class="ld"/><circle cx="0" cy="-38" r="14" class="lf"/></g>`;
-}
-function fence(){
-  // posts along the front-right edge of the meadow
-  let s=''; for(let k=0;k<7;k++){ const t=k/6; const x=320+t*250, y=346-t*125; s+=`<rect x="${x-2}" y="${y-16}" width="4" height="16" rx="1" fill="#A07A52"/>`; }
-  return `<g>${s}<path d="M320,338 L570,213 M320,344 L570,219" stroke="#C49A6C" stroke-width="2.5"/></g>`;
-}
-function renderPlants(){
-  const pts=[];
-  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
-    const [x,y]=tileXY(i,j);
-    pts.push([x-15,y-6.5],[x+13,y+6.5]);
-  }
-  pts.sort((a,b)=>a[1]-b[1]);
-  let r2 = (s=>()=>{s=(s*16807)%2147483647;return s/2147483647})(7);
-  const art = PLANT[G.crop];
-  $('plants').innerHTML = pts.map(([x,y])=>`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})"><g class="pl" style="--j:${(0.86+r2()*0.26).toFixed(2)}"><g class="sway" style="--d:${(-r2()*4).toFixed(2)}s">${art}</g></g></g>`).join('');
-}
-function paintNDVI(v){
-  document.querySelectorAll('.ndvi-tile').forEach(t=>{
-    const n = clamp(v + parseFloat(t.dataset.n)*0.07, 0.05, 0.92);
-    t.style.fill = ndviColor(n);
-  });
-}
-function ndviColor(v){
-  const stops=[[0.1,[166,115,46]],[0.3,[217,194,87]],[0.5,[156,203,91]],[0.7,[46,139,62]],[0.9,[15,90,42]]];
-  if(v<=stops[0][0]) return `rgb(${stops[0][1]})`;
-  for(let k=1;k<stops.length;k++){ if(v<=stops[k][0]){ const [a,ca]=stops[k-1],[b,cb]=stops[k]; const t=(v-a)/(b-a); return `rgb(${ca.map((c,i)=>Math.round(c+(cb[i]-c)*t))})`; } }
-  return `rgb(${stops[4][1]})`;
-}
-function setTank(pct){
-  const h = 40*pct/100; const w=$('tank-water'); if(!w) return;
-  w.setAttribute('y', (-3-h).toFixed(1)); w.setAttribute('height', h.toFixed(1));
-}
-function setFieldState(state, weather){
-  const st=$('stage');
-  st.dataset.state = state;
-  if(weather) st.dataset.weather = weather;
-  const S=STATES[state];
-  const ic=$('cond-ic'); ic.style.background=S.color; ic.innerHTML=IC[S.ic];
-  renderFieldLabels();
-  const ndv = {planning:.22, healthy:.74, drought:.33, overwater:.46, lownutrients:.41, harvest:.62, failed:.18}[state];
-  paintNDVI(ndv);
-}
-function renderFieldLabels(){
-  const st=$('stage');
-  $('cond-text').textContent=STATES[st.dataset.state].label;
-  const W=WEATHER[st.dataset.weather]; $('wx-chip').innerHTML = IC[W.ic] + W.text;
-}
-
-/* =========================================================
-   PANELS
-   ========================================================= */
-function renderControls(){
-  const s = SEASONS[G.season], locked = G.phase!=='plan';
-  // crops
-  $('crop-grid').innerHTML = Object.entries(CROPS).map(([id,c])=>`
-    <button class="crop" data-crop="${id}" aria-pressed="${G.crop===id}" ${locked?'disabled':''}>
-      ${cropIcon(id)}<b>${c.name}</b>
-      <span class="meta"><span class="drops" role="img" aria-label="${t('decisions.waterNeed',{n:c.drops})}">${[1,2,3].map(k=>`<span class="${k<=c.drops?'':'off'}">${IC.dropFill}</span>`).join('')}</span>${fmt$(c.seed)}</span>
-      <span class="tag ${c.legume?'leg':c.tol?'tol':''}">${c.tag}</span>
-    </button>`).join('');
-  const c=CROPS[G.crop];
-  $('crop-note').textContent = t('decisions.likes',{min:c.temp[0], max:c.temp[1]});
-  // irrigation
-  const perLevel = Math.round(IRR_RESERVE*s.irrMul);
-  $('irr-seg').innerHTML = IRR.map((o,k)=>{
-    const dis = locked || k*perLevel > G.m.water;
-    return `<button data-irr="${k}" aria-pressed="${G.irr===k}" ${dis?'disabled':''}><span class="drops">${k===0?IC.none:Array.from({length:k},()=>IC.dropFill).join('')}</span>${o.label}</button>`;
-  }).join('');
-  $('reserve-note').textContent = t('decisions.reserve',{pct:G.m.water});
-  const irr=IRR[G.irr];
-  $('irr-hint').innerHTML = G.irr===0 ? t('irrigation.hintNone')
-    : t('irrigation.hintAdds',{mm:irr.mm, pct:G.irr*perLevel}) + (s.irrMul>1?t('irrigation.heat'):'') + '.';
-  // fertilizer
-  $('fert-list').innerHTML = Object.entries(FERTS).map(([id,f])=>`
-    <button class="fert" data-fert="${id}" aria-pressed="${G.fert===id}" ${locked?'disabled':''}>
-      <span class="fic" style="background:${f.bg};color:#fff">${IC[f.ic]}</span>
-      <span><b>${f.name}</b><small>${f.desc}</small></span><span class="cost">${f.cost?fmt$(f.cost):t('fertilizers.free')}</span>
-    </button>`).join('');
-  // summary
-  const cost = planCost();
-  $('plan-sum').innerHTML = `<div><span>${t('plan.seeds',{crop:c.name})}</span><span>${fmt$(c.seed)}</span></div>
-    <div><span>${t('plan.irrigation',{level:irr.label})}</span><span>${fmt$(G.irr*IRR_COST)}</span></div>
-    <div><span>${t('plan.fertilizer',{name:FERTS[G.fert].name})}</span><span>${fmt$(FERTS[G.fert].cost)}</span></div>
-    <div class="total"><span>${t('plan.total')}</span><span>${fmt$(cost)}</span></div>`;
-  const broke = cost > G.m.budget;
-  $('warn-line').classList.toggle('show', broke && !locked);
-  $('btn-confirm').disabled = locked || broke;
-  $('btn-confirm').innerHTML = IC.check + (G.phase==='plan' ? t('actions.confirmGrow',{season:s.name, seasonLower:lower(s.name)}) : t('actions.inProgress'));
-  if(G.phase==='plan') renderPlants();
-}
-function planCost(){ return CROPS[G.crop].seed + G.irr*IRR_COST + FERTS[G.fert].cost; }
-
-function renderSeason(){
-  const s=SEASONS[G.season];
-  $('season-name').textContent = t('season.title',{name:s.name, year:s.year});
-  $('season-count').textContent = t('season.count',{n:G.season+1});
-  $('season-ic').innerHTML = IC[{spring:'sprout',summer:'sun',autumn:'leaf'}[s.id]];
-  $('mission-text').textContent = s.mission;
-  [...$('season-dots').children].forEach((d,k)=>{ d.className = k<G.season?'done':k===G.season?'now':''; });
-  renderData(s);
-}
-function gauge(val,min,max,avg,grad,labels){
-  const p=v=>clamp((v-min)/(max-min)*100,0,100);
-  return `<div class="gauge" style="background:${grad}"><span class="avg" style="left:${p(avg)}%" title="${t('data.average20')}"></span><span class="mk" style="left:${p(val)}%"></span></div>
-    <div class="gauge-labels">${labels.map(l=>`<span>${l}</span>`).join('')}</div>`;
-}
-function renderData(s){
-  const tA = +(s.temp-s.tempAvg).toFixed(1), rA = Math.round((s.rain-s.rainAvg)/s.rainAvg*100);
-  const chip = (cls,key)=>[cls,t('data.chip.'+key)];
-  const tChip = tA>3?chip('hot','hot'):tA>1?chip('warm','warm'):tA<-1?chip('cool','cool'):chip('ok','normal');
-  const rChip = rA<-30?chip('dry','veryDry'):rA<-10?chip('warm','belowNormal'):rA>20?chip('wet','wet'):chip('ok','normal');
-  const mChip = s.sm<0.2?chip('dry','dryTopsoil'):s.sm>0.3?chip('wet','moist'):chip('ok','adequate');
-  const vChip = s.ndvi<0.4?chip('warm','sparse'):s.ndvi<0.6?chip('ok','moderate'):chip('ok','dense');
-  const item=(ic,bg,title,chip,val,unit,anom,g,src)=>`<div class="datum">
-      <div class="datum-top"><span class="dic" style="background:${bg}">${IC[ic]}</span><h3>${title}</h3><span class="chip ${chip[0]}">${chip[1]}</span></div>
-      <div class="datum-val"><b>${val}</b><span>${unit}</span><em>${anom}</em></div>${g}<div class="src">${src}</div></div>`;
-  $('data-list').innerHTML =
-    item('thermo','#D0632A',t('data.temperature'),tChip,num(s.temp),t('data.unit.tempAvg'),t('data.vsNormalTemp',{value:`${tA>0?'+':''}${dec1(tA)}`}),
-      gauge(s.temp,0,40,s.tempAvg,'linear-gradient(90deg,#7DB6F0,#9CD58A 45%,#F3C04E 70%,#E0602F)',['0°','20°','40°C']),t('data.src.temperature'))+
-    item('rain','#1E6FD9',t('data.rainfall'),rChip,num(s.rain),t('data.unit.rain'),t('data.vsNormalPct',{value:`${rA>0?'+':''}${rA}`}),
-      gauge(s.rain,0,120,s.rainAvg,'linear-gradient(90deg,#E9D6B4,#9CC6EE 55%,#1E6FD9)',['0','60','120 mm']),t('data.src.rainfall'))+
-    item('drop','#2A8FA8',t('data.soil'),mChip,dec(s.sm),'m³/m³',t('data.avg',{value:dec(s.smAvg)}),
-      gauge(s.sm,0.05,0.45,s.smAvg,'linear-gradient(90deg,#C99A5E 0 37%,#9CD58A 37% 62%,#6FB4E8 62%)',[t('data.gauge.dry'),t('data.gauge.good'),t('data.gauge.wet')]),t('data.src.soil'))+
-    item('ndvi','#2E8B3E',t('data.vegetation'),vChip,dec(s.ndvi),'NDVI',t('data.avg',{value:dec(s.ndviAvg)}),
-      gauge(s.ndvi,0,1,s.ndviAvg,'linear-gradient(90deg,#A6732E,#D9C257 30%,#9CCB5B 50%,#2E8B3E 70%,#0F5A2A)',[t('data.gauge.bare'),'',t('data.gauge.lush')]),t('data.src.vegetation'));
-  $('insight').innerHTML = `<b>${IC.bulb} ${t('insight.title')}</b>${s.insight}`;
-  $('obs').innerHTML = `${t('obs.period',{period:s.period})}<br>${t('obs.area')}<br>${t('obs.note')}`;
-  $('nasa-sub').textContent = t('nasa.seasonSummary',{season:t('season.title',{name:s.name, year:s.year})});
-}
-
-const METERS = [
-  { key:'health', ic:'leaf',    bg:'#3E9B4F', unit:'%' },
-  { key:'soil',   ic:'soil',    bg:'#8C5E3C', unit:'%' },
-  { key:'water',  ic:'drop',    bg:'#1E6FD9', unit:'%' },
-  { key:'budget', ic:'coin',    bg:'#C9971B', unit:'' },
-  { key:'sus',    ic:'recycle', bg:'#1E7A6A', unit:'/100' },
-];
-METERS.forEach(M=>translated(M, { label:`meters.${M.key}` }));
-function barColor(v){ return v>=70?'var(--green-500)':v>=45?'var(--amber-500)':'var(--red-600)'; }
-function renderMeters(deltas){
-  $('meters').innerHTML = METERS.map(M=>{
-    const v=G.m[M.key];
-    const shown = v===null?'—':M.key==='budget'?fmt$(v):v;
-    const pct = M.key==='budget'? clamp(v/15000*100,0,100) : (v??0);
-    const col = M.key==='budget'? 'var(--amber-500)' : barColor(v??0);
-    return `<div class="meter" data-k="${M.key}">
-      <div class="mic" style="background:${M.bg}">${IC[M.ic]}</div>
-      <div class="meter-body"><small title="${M.label}">${M.label}</small>
-        <div class="val"><b>${shown}</b>${v!==null&&M.key!=='budget'?`<span>${M.unit}</span>`:''}</div>
-        <div class="bar"><i style="width:${pct}%;background:${col}"></i></div></div>
-      <span class="delta"></span></div>`;
-  }).join('');
-  if(deltas) Object.entries(deltas).forEach(([k,d])=>{
-    if(!d) return;
-    const el=document.querySelector(`.meter[data-k="${k}"] .delta`); if(!el) return;
-    el.textContent = k==='budget'? (d>0?'+':'')+fmt$(d) : sign(d);
-    el.className = 'delta '+(d>0?'up':'down');
-    requestAnimationFrame(()=>el.classList.add('show'));
-    setTimeout(()=>el.classList.remove('show'),3200);
-  });
-  setTank(G.m.water);
-}
-
-/* =========================================================
-   SIMULATION
-   ========================================================= */
-function evaluate(){
-  const s=SEASONS[G.season], c=CROPS[G.crop], f=FERTS[G.fert];
-  const heat = c.tol ? 1 : 1 + Math.max(0,s.temp-20)*0.03;
-  const demand = Math.round(c.water*heat);
-  const storage = Math.round(Math.max(0,(s.sm-0.10)*400));
-  const irrMm = IRR[G.irr].mm;
-  const supplyNoIrr = s.rain + storage;
-  const supply = supplyNoIrr + irrMm;
-  const r = supply/demand;
-  const water = r<0.9 ? Math.max(0,100-(0.9-r)*200) : r>1.4 ? Math.max(0,100-(r-1.4)*150) : 100;
-  const nAvail = G.soilN + f.n - c.uptake;
-  const nutr = clamp(nAvail/35*100,0,100);
-  const [lo,hi]=c.temp; const off = s.temp<lo?lo-s.temp : s.temp>hi?s.temp-hi : 0;
-  const tempS = Math.max(0,100-off*6);
-  const health = Math.round(0.5*water + 0.3*nutr + 0.2*tempS);
-  let state='healthy';
-  if(water<70 && r<1) state='drought'; else if(water<70) state='overwater'; else if(nutr<70) state='lownutrients';
-  const wasted = G.irr>0 && supplyNoIrr/demand >= 0.95;
-  const needed = supplyNoIrr/demand < 0.9;
-
-  let dSoil = f.soil + c.soil + (state==='overwater'?-6:0) + (state==='drought'?-3:0) + (state==='lownutrients'?-2:0);
-  let dSus = f.sus + (G.fert==='synthetic' && (s.rain>70||state==='overwater') ? -6:0)
-           + (wasted ? -5*G.irr : 0) + (G.irr>0 && needed && state!=='overwater' ? 3:0)
-           + (c.tol && s.temp>28 ? 6:0) + (c.legume?4:0) + (state==='overwater'?-5:0)
-           + (state==='healthy' && G.irr===0 ? 3:0);
-  const used = Math.round(G.irr*IRR_RESERVE*s.irrMul), refill = Math.round(s.rain/6);
-  const newWater = clamp(G.m.water - used + refill, 0, 100);
-  const revenue = Math.round(c.price*health/100/10)*10;
-  const dBudget = revenue - planCost();
-  const fieldNdvi = +(0.18 + 0.6*health/100).toFixed(2);
-
-  return { s, c, f, demand, storage, supply, supplyNoIrr, r, water, nutr, nAvail, tempS, off, health, state, wasted, needed,
-           dSoil, dSus, used, refill, dWater:newWater-G.m.water, newWater, revenue, dBudget, fieldNdvi };
-}
-function applyResult(R){
-  const d = { health: G.m.health===null? R.health : R.health-G.m.health, soil:0, water:R.dWater, budget:R.dBudget, sus:0 };
-  const soil = clamp(G.m.soil+R.dSoil,0,100), sus=clamp(G.m.sus+R.dSus,0,100);
-  d.soil = soil-G.m.soil; d.sus = sus-G.m.sus;
-  G.m = { health:R.health, soil, water:R.newWater, budget:G.m.budget+R.dBudget, sus };
-  G.soilN = clamp(R.nAvail - (R.state==='overwater'?8:0) + 3, 0, 100);
-  G.history.push({ season:G.season, crop:G.crop, irr:G.irr, fert:G.fert, state:R.state, health:R.health, wasted:R.wasted });
-  return d;
-}
-
-/* =========================================================
-   EXPLANATION (educational)
-   ========================================================= */
-function explain(R){
-  const {s,c}=R, crop=c.name, pct=Math.round(R.r*100);
-  const cv = { crop, cropLower:lower(crop), pct, demand:R.demand, temp:num(s.temp), min:c.temp[0], max:c.temp[1] };
-  const irrTxt = G.irr===0 ? t('explain.noIrrigation') : t('explain.irrigation',{levelLower:lower(IRR[G.irr].label), mm:IRR[G.irr].mm});
-  const data = t('explain.data',{sm:dec(s.sm), rain:num(s.rain), temp:num(s.temp)});
-  const decision = t('explain.decision',{crop, irrigation:irrTxt, fertilizer:G.fert==='none'?t('explain.noFertilizer'):FERTS[G.fert].name});
-  let result, cls='', sci, tip;
-  const tempLine = R.off>0 ? t('explain.tempLine',cv) : '';
-  switch(R.state){
-    case 'drought':
-      cls='bad';
-      result = t('explain.drought.result',cv) + tempLine;
-      sci = t('explain.drought.sci');
-      tip = s.sm<0.2 ? t('explain.drought.tipDry',{threshold:dec(0.2)}) : t('explain.drought.tipHeavy');
-      break;
-    case 'overwater':
-      cls='bad';
-      result = t('explain.overwater.result',cv) + tempLine;
-      sci = t('explain.overwater.sci');
-      tip = t('explain.overwater.tip',{sm:dec(s.sm), threshold:dec(0.3)});
-      break;
-    case 'lownutrients':
-      cls='warn';
-      result = t('explain.lownutrients.result',cv) + tempLine;
-      sci = t('explain.lownutrients.sci',{ndvi:dec(s.ndvi)});
-      tip = t('explain.lownutrients.tip');
-      break;
-    default:
-      result = t('explain.healthy.result',cv) + tempLine;
-      sci = t('explain.healthy.sci');
-      tip = R.wasted ? t('explain.tip.wasted') : R.off>0 ? t('explain.tip.temp') : t('explain.tip.keep');
-  }
-  return { data, decision, result, cls, sci, tip };
-}
-
-/* =========================================================
-   FLOW
-   ========================================================= */
-function confirmDecision(){
-  if(G.phase!=='plan') return;
-  const R = evaluate();
-  G.phase='growing'; renderControls();
-  $('stage').classList.remove('ndvi'); setView(false);
-  const weather = R.state==='drought'?'heat':R.state==='overwater'?'rain':SEASONS[G.season].weather;
-  setFieldState(R.state, weather);
-  paintNDVI(R.fieldNdvi);
-  const d = applyResult(R);
-  setTimeout(()=>{ renderMeters(d); renderControls(); }, 500);
-  setTimeout(()=>showReport(R, d), 1500);
-}
-let lastReport = null;
-function showReport(R, d){
-  lastReport = { R, d, season:G.season };
-  renderReport();
-  openOv('ov-report');
-}
-function renderReport(){
-  const { R, d, season } = lastReport;
-  const E=explain(R), S=STATES[R.state], last = season===2;
-  $('report').innerHTML = `
-    <div class="report-head">
-      <div class="ric" style="background:${S.color}">${IC[S.ic]}</div>
-      <div><div class="eyebrow">${t('report.eyebrow',{season:t('season.title',{name:R.s.name, year:R.s.year}), n:season+1})}</div><h2 id="rep-title">${S.label}</h2></div>
-      <div class="field-ndvi"><small>${t('report.fieldNdvi')}</small><b>${dec(R.fieldNdvi)}</b></div>
-    </div>
-    <div class="report-body">
-      <div class="deltas">
-        <span class="dchip">${IC.leaf} ${t('meters.health')} <span class="n ${R.health>=70?'up':'down'}">${R.health}%</span></span>
-        ${[['soil',t('report.soil'),IC.soil],['water',t('report.water'),IC.drop],['sus',t('meters.sus'),IC.recycle]].map(([k,l,i])=>`<span class="dchip">${i} ${l} <span class="n ${d[k]>=0?'up':'down'}">${sign(d[k])}</span></span>`).join('')}
-        <span class="dchip">${IC.coin} ${t('meters.budget')} <span class="n ${d.budget>=0?'up':'down'}">${d.budget>=0?'+':''}${fmt$(d.budget)}</span></span>
-      </div>
-      <div class="chain">
-        <div class="link data"><h4>${IC.satellite} ${t('report.nasaData')}</h4>${E.data}</div>
-        <div class="link dec"><h4>${IC.farmer} ${t('report.decision')}</h4>${E.decision}</div>
-        <div class="link res ${E.cls}"><h4>${IC[S.ic]} ${t('report.happened')}</h4>${E.result}</div>
-      </div>
-      <div class="note sci"><span class="nic">${IC.atom}</span><span><b>${t('report.science')}</b>${E.sci}</span></div>
-      <div class="note tip"><span class="nic">${IC.bulb}</span><span><b>${t('report.tip')}</b>${E.tip}</span></div>
-      <div class="report-foot">
-        <small>${t('report.sold',{crop:R.c.name, cropLower:lower(R.c.name), amount:fmt$(R.revenue)})}</small>
-        <button class="btn btn-primary btn-lg" id="btn-next">${last?IC.basket+t('actions.harvest'):t('actions.nextSeason')+IC.arrow}</button>
-      </div>
-    </div>`;
-  $('btn-next').onclick = ()=>{ closeOv('ov-report'); lastReport=null; last ? harvest() : nextSeason(); };
-}
-function nextSeason(){
-  G.season++; G.phase='plan';
-  if(G.irr*Math.round(IRR_RESERVE*SEASONS[G.season].irrMul) > G.m.water) G.irr=0;
-  renderSeason(); setFieldState('planning', SEASONS[G.season].weather); renderControls();
-}
-function finalScore(){
-  const avg = G.history.reduce((a,h)=>a+h.health,0)/Math.max(1,G.history.length);
-  const success = avg>=60 && G.m.budget>0;
-  const budgetBonus = clamp((G.m.budget-10000)/200,-10,10);
-  // A failed harvest costs 15 points and caps the result at one star
-  const score = Math.round(clamp(0.35*avg + 0.2*G.m.soil + 0.15*G.m.water + 0.3*G.m.sus + budgetBonus - (success?0:15), 0, 100));
-  const stars = score>=80?3:score>=60?2:score>=35?1:0;
-  return { avg:Math.round(avg), success, score, stars: success?stars:Math.min(stars,1) };
-}
-function harvest(){
-  const F = finalScore();
-  G.phase='done'; renderControls();
-  setFieldState(F.success?'harvest':'failed', F.success?'clear':'cloudy');
-  showBanner(F.success);
-}
-let bannerSuccess = null;
-function showBanner(success){
-  bannerSuccess = success;
-  renderBanner();
-  $('banner').classList.add('show');
-}
-function renderBanner(){
-  const b=$('banner-card'), success=bannerSuccess;
-  b.innerHTML = success
-    ? `<div class="big-ic" style="background:#C9971B">${IC.basket}</div><h2>${t('banner.win.title')}</h2><p>${t('banner.win.text')}</p><button class="btn btn-primary btn-lg" id="btn-final">${IC.trophy} ${t('actions.seeScore')}</button>`
-    : `<div class="big-ic" style="background:#8E2A1F">${IC.x}</div><h2>${t('banner.fail.title')}</h2><p>${t('banner.fail.text')}</p><button class="btn btn-lg" id="btn-final">${IC.trophy} ${t('actions.seeScore')}</button>`;
-  $('btn-final').onclick = ()=>{ $('banner').classList.remove('show'); showFinal(); };
-}
-
-/* =========================================================
-   FINAL SCREEN
-   ========================================================= */
-function showFinal(){
-  renderFinal();
-  show('final'); window.scrollTo(0,0);
-}
-function renderFinal(){
-  const F=finalScore();
-  const rank = t('final.rank.'+(F.score>=80?'master':F.score>=60?'skilled':F.score>=35?'growing':'rookie'));
-  const star=(on,cls='')=>`<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path class="${on?'star-on':'star-off'}" stroke-width="1.4" stroke-linejoin="round" d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg>`;
-  const H=G.history;
-  const badges = [
-    { id:'water',  on:!H.some(h=>h.wasted) && G.m.water>=40, bg:'#1E6FD9', ic:'drop' },
-    { id:'soil',   on:G.m.soil>=70, bg:'#8C5E3C', ic:'soil' },
-    { id:'data',   on:!H.some(h=>h.state==='drought'||h.state==='overwater'), bg:'#0B3D91', ic:'satellite' },
-    { id:'heat',   on:H[1]&&H[1].health>=70, bg:'#D0632A', ic:'heat' },
-    { id:'legume', on:H.some(h=>CROPS[h.crop].legume), bg:'#3E9B4F', ic:'legume' },
-  ];
-  const lessons = [];
-  if(H.some(h=>h.state==='drought')) lessons.push(t('lessons.drought',{threshold:dec(0.2)}));
-  if(H.some(h=>h.state==='overwater')) lessons.push(t('lessons.overwater'));
-  if(H.some(h=>h.state==='lownutrients')) lessons.push(t('lessons.nutrients'));
-  lessons.push(t('lessons.temperature'));
-  lessons.push(t('lessons.ndvi'));
-  $('final').innerHTML = `
-    <div class="final-hero">
-      <div class="score-card">
-        <div class="stars">${star(F.stars>=1)}${star(F.stars>=2,'s2')}${star(F.stars>=3)}</div>
-        <div class="eyebrow" style="color:#BFE3B8">${t('final.scoreLabel')}</div>
-        <div class="score-num">${F.score}<span>/100</span></div>
-        <div class="rank">${rank}</div>
-        <div class="harvest-result ${F.success?'ok':'bad'}">
-          <span class="hic" style="background:${F.success?'#C9971B':'#8E2A1F'}">${F.success?IC.basket:IC.x}</span>
-          <span>${F.success?t('final.success',{avg:F.avg}):t('final.fail',{avg:F.avg})}</span>
-        </div>
-      </div>
-      <div class="final-side">
-        <div class="card"><h3>${IC.map} ${t('final.seasons')}</h3>
-          <div class="timeline">${H.map(h=>{ const S=STATES[h.state], s=SEASONS[h.season]; return `
-            <div class="tl"><div class="tl-top">${cropIcon(h.crop)}<div><small>${s.name}</small><b>${CROPS[h.crop].name}</b></div><span class="hp" style="color:${barColor(h.health)}">${h.health}%</span></div>
-            <span class="state" style="background:${S.color}1f;color:${S.color}">${IC[S.ic]}${S.label}</span></div>`}).join('')}</div>
-        </div>
-        <div class="card"><h3>${IC.grid} ${t('final.breakdown')}</h3>
-          <div class="breakdown">
-            ${[[t('final.avgHealth'),F.avg,'35%'],[t('meters.soil'),G.m.soil,'20%'],[t('meters.water'),G.m.water,'15%'],[t('meters.sus'),G.m.sus,'30%']].map(([l,v,w])=>`
-            <div class="brow"><span>${l} <small style="color:var(--muted)">· ${w}</small></span><div class="bar"><i style="width:${v}%;background:${barColor(v)}"></i></div><span>${v}</span></div>`).join('')}
-            <div class="brow"><span>${t('final.finalBudget')}</span><span style="font-size:13px;color:var(--muted);font-family:var(--font-body)">${G.m.budget>=10000?t('final.profit'):t('final.loss')}</span><span style="font-size:15px">${fmt$(G.m.budget)}</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="final-grid">
-      <div class="card"><h3>${IC.trophy} ${t('final.badges')}</h3><div class="badges">${badges.map(b=>`<div class="bdg ${b.on?'':'locked'}"><div class="medal" style="background:${b.bg}">${IC[b.ic]}</div><b>${t(`badges.${b.id}.name`)}</b><small>${t(`badges.${b.id}.desc`)}</small></div>`).join('')}</div></div>
-      <div class="card"><h3>${IC.satellite} ${t('final.lessons')}</h3><ul class="lessons">${lessons.slice(0,4).map(l=>`<li><span class="lic">${IC.check}</span><span>${l}</span></li>`).join('')}</ul></div>
-    </div>
-    <div class="final-actions">
-      <button class="btn btn-primary btn-lg" id="btn-again">${IC.refresh} ${t('actions.playAgain')}</button>
-      <button class="btn btn-lg" id="btn-tut2">${IC.help} ${t('actions.reviewTutorial')}</button>
-    </div>
-    <p class="disclaimer">${t('final.disclaimer')}</p>`;
-  $('btn-again').onclick = restart;
-  $('btn-tut2').onclick = ()=>openTutorial(0);
-}
-
-/* =========================================================
-   TUTORIAL
-   ========================================================= */
-const TUT = [
-  { id:'welcome', art:()=>`<div style="display:flex;gap:10px">${cropIcon('wheat')}${cropIcon('maize')}${cropIcon('sorghum')}${cropIcon('chickpea')}</div>`, bg:'linear-gradient(180deg,#BFE1F5,#EEF6E6)',
-    chips:()=>[t('tut.welcome.chip1'),t('tut.welcome.chip2'),t('tut.welcome.chip3')] },
-  { id:'sky', art:()=>`<div style="width:120px;height:120px">${IC['satellite-color']}</div>`, bg:'linear-gradient(180deg,#0B3D91,#1E6FD9)',
-    chips:()=>['NASA POWER','GPM IMERG','SMAP','MODIS NDVI'] },
-  { id:'decide', art:()=>`<div style="display:flex;gap:12px;color:#fff">${['sprout','drop','flask'].map(i=>`<span style="width:64px;height:64px;border-radius:20px;background:rgba(255,255,255,.18);display:grid;place-items:center">${IC[i].replace('class="icon"','class="icon" style="width:34px;height:34px"')}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#3E9B4F,#23603F)',
-    chips:()=>[t('tut.decide.chip1'),t('tut.decide.chip2'),t('tut.decide.chip3')] },
-  { id:'watch', art:()=>`<div style="display:flex;gap:10px">${['healthy','drought','overwater','lownutrients'].map(s=>`<span style="width:54px;height:54px;border-radius:16px;background:${STATES[s].color};color:#fff;display:grid;place-items:center">${IC[STATES[s].ic]}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#FBF0D6,#F3E8D2)',
-    chips:()=>[t('tut.watch.chip1'),t('tut.watch.chip2')] },
-];
-let tutStep=0;
-function openTutorial(step=0){ tutStep=step; renderTut(); openOv('ov-tut'); }
-function renderTut(){
-  const T=TUT[tutStep], last=tutStep===TUT.length-1;
-  $('tut').innerHTML = `
-    <div class="tut-art" style="background:${T.bg}">${T.art()}</div>
-    <div class="tut-step">${t('tut.step',{n:tutStep+1, total:TUT.length})}</div>
-    <h2 id="tut-title">${t(`tut.${T.id}.title`)}</h2><p>${t(`tut.${T.id}.body`)}</p>
-    <div class="tut-mini">${T.chips().map(c=>`<span>${c}</span>`).join('')}</div>
-    <div class="tut-nav">
-      <button class="btn btn-ghost" id="tut-skip">${tutStep===0?t('actions.skip'):IC.arrow.replace('<path d="M5 12h14M13 6l6 6-6 6"/>','<path d="M19 12H5M11 6l-6 6 6 6"/>')+t('actions.back')}</button>
-      <div class="dots">${TUT.map((_,k)=>`<i class="${k===tutStep?'on':''}"></i>`).join('')}</div>
-      <button class="btn btn-primary" id="tut-next">${last?t('actions.startFarming'):t('actions.next')} ${IC.arrow}</button>
-    </div>`;
-  $('tut-skip').onclick = ()=>{ if(tutStep===0){ closeOv('ov-tut'); show('game'); } else { tutStep--; renderTut(); } };
-  $('tut-next').onclick = ()=>{ if(last){ closeOv('ov-tut'); if(!$('scr-final').classList.contains('active')) show('game'); else restart(); } else { tutStep++; renderTut(); } };
-}
-
-/* =========================================================
-   SCREENS / OVERLAYS
-   ========================================================= */
-function show(name){
-  ['loading','error','game','final'].forEach(n=>$('scr-'+n).classList.toggle('active', n===name));
-}
-function openOv(id){ $(id).classList.add('show'); const f=$(id).querySelector('button'); f&&f.focus(); }
-function closeOv(id){ $(id).classList.remove('show'); }
-const ovOpen = id => $(id).classList.contains('show');
-function closeAllOv(){ document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show')); $('banner').classList.remove('show'); }
-
-let bootTimer;
-function boot(fail=false, then='tutorial'){
-  clearInterval(bootTimer); show('loading');
-  const lis=[...$('boot-steps').children]; let k=0;
-  const step=()=>{
-    lis.forEach((li,i)=>li.className = i<k?'done':i===k?'now':'');
-    $('boot-bar').style.width = (k/lis.length*100)+'%';
-    if(fail && k===2){ clearInterval(bootTimer); setTimeout(()=>show('error'),700); return; }
-    if(k===lis.length){ clearInterval(bootTimer); setTimeout(()=>{ show('game'); if(then==='tutorial') openTutorial(0); },450); return; }
-    k++;
-  };
-  step(); bootTimer=setInterval(step,650);
-}
-function restart(){
-  closeAllOv(); newGame(); renderSeason(); renderMeters(); setFieldState('planning', SEASONS[0].weather); renderControls(); show('game'); window.scrollTo(0,0);
-}
-function setView(sat){
-  $('stage').classList.toggle('ndvi', sat);
-  $('view-sat').setAttribute('aria-pressed', sat); $('view-farm').setAttribute('aria-pressed', !sat);
-}
-
-/* =========================================================
-   PREFERENCE CONTROLS (header dropdowns + mobile menu)
-   State lives in FarmPrefs; these controls only render it.
-   ========================================================= */
-const langName = code => t(code==='ru' ? 'language.russian' : 'language.english');
-const PREF_KINDS = {
-  language: {
-    options: FarmPrefs.LANGUAGE_PREFERENCES,
-    current: ()=>FarmPrefs.get().languagePreference,
-    set: v=>FarmPrefs.setLanguagePreference(v),
-    labelKey: 'language.label',
-    buttonKey: 'language.button',
-    buttonIcon: ()=>IC.globe,
-    optionIcon: v=> v==='system' ? IC.monitor : v.toUpperCase(),
-    optionLabel: v=> v==='system' ? t('language.system') : langName(v),
-    optionHint: v=> v==='system' ? langName(FarmPrefs.systemLanguage()) : '',
-    value: ()=>{ const s=FarmPrefs.get(); return s.languagePreference==='system' ? t('language.systemResolved',{lang:langName(s.resolvedLanguage)}) : langName(s.languagePreference); },
-  },
-  theme: {
-    options: FarmPrefs.THEME_PREFERENCES,
-    current: ()=>FarmPrefs.get().themePreference,
-    set: v=>FarmPrefs.setThemePreference(v),
-    labelKey: 'theme.label',
-    buttonKey: 'theme.button',
-    buttonIcon: ()=>IC[{system:'monitor',light:'sun',dark:'moon'}[FarmPrefs.get().themePreference]],
-    optionIcon: v=>IC[{system:'monitor',light:'sun',dark:'moon'}[v]],
-    optionLabel: v=> t('theme.'+v),
-    optionHint: v=> v==='system' ? t('theme.'+FarmPrefs.systemTheme()) : '',
-    value: ()=>{ const s=FarmPrefs.get(); return s.themePreference==='system' ? t('theme.systemResolved',{theme:t('theme.'+s.resolvedTheme)}) : t('theme.'+s.themePreference); },
-  },
-};
-const prefControls = [];
-let openPref = null, prefSeq = 0;
-
-function createPref(kind, block){
-  const K = PREF_KINDS[kind], uid = `pref-${kind}-${++prefSeq}`;
-  const root = document.createElement('div');
-  root.className = 'pref' + (block ? ' block' : '');
-  root.innerHTML = `
-    <button type="button" class="pref-btn${block?'':' tip'}" id="${uid}-btn" aria-haspopup="listbox" aria-expanded="false" aria-controls="${uid}-list">
-      <span class="pref-ic"></span><span class="pref-val"></span><span class="chev">${IC.chevron}</span>
-    </button>
-    <ul class="pref-list" id="${uid}-list" role="listbox" tabindex="-1" hidden>
-      ${K.options.map(v=>`<li class="pref-opt" role="option" id="${uid}-${v}" data-value="${v}"><span class="opt-ic"></span><span class="opt-text"><span class="opt-label"></span><small></small></span><span class="tick">${IC.check}</span></li>`).join('')}
-    </ul>`;
-  const btn = root.querySelector('.pref-btn'), list = root.querySelector('.pref-list');
-  const opts = [...list.children];
-  const ctl = { kind, root, btn, list, opts, block, active:0, labelId:null };
-
-  ctl.render = ()=>{
-    const cur = K.current(), value = K.value();
-    btn.querySelector('.pref-ic').innerHTML = K.buttonIcon();
-    btn.querySelector('.pref-val').textContent = value;
-    btn.setAttribute('aria-label', t(K.buttonKey,{value}));
-    if(!block) btn.dataset.tip = t(K.labelKey);
-    if(ctl.labelId) list.setAttribute('aria-labelledby', ctl.labelId); else list.setAttribute('aria-label', t(K.labelKey));
-    opts.forEach(o=>{
-      const v=o.dataset.value;
-      o.setAttribute('aria-selected', v===cur);
-      o.querySelector('.opt-ic').innerHTML = K.optionIcon(v);
-      o.querySelector('.opt-label').textContent = K.optionLabel(v);
-      const hint = K.optionHint(v), sm=o.querySelector('small');
-      sm.textContent = hint; sm.hidden = !hint;
-    });
-  };
-  const setActive = i=>{
-    ctl.active = (i + opts.length) % opts.length;
-    opts.forEach((o,k)=>o.classList.toggle('active', k===ctl.active));
-    list.setAttribute('aria-activedescendant', opts[ctl.active].id);
-    opts[ctl.active].scrollIntoView({block:'nearest'});
-  };
-  ctl.open = ()=>{
-    if(openPref && openPref!==ctl) openPref.close(false);
-    list.hidden = false; btn.setAttribute('aria-expanded','true'); openPref = ctl;
-    setActive(Math.max(0, K.options.indexOf(K.current())));
-    list.focus({preventScroll:true});
-  };
-  ctl.close = (refocus=true)=>{
-    if(list.hidden) return;
-    list.hidden = true; btn.setAttribute('aria-expanded','false');
-    list.removeAttribute('aria-activedescendant');
-    if(openPref===ctl) openPref = null;
-    if(refocus) btn.focus();
-  };
-  const choose = i=>{ const v=opts[i].dataset.value; ctl.close(true); if(v!==K.current()) K.set(v); };
-
-  btn.addEventListener('click', ()=> list.hidden ? ctl.open() : ctl.close());
-  btn.addEventListener('keydown', e=>{
-    if(e.key==='ArrowDown' || e.key==='ArrowUp'){ e.preventDefault(); ctl.open(); if(e.key==='ArrowUp') setActive(opts.length-1); }
-  });
-  list.addEventListener('keydown', e=>{
-    switch(e.key){
-      case 'ArrowDown': e.preventDefault(); setActive(ctl.active+1); break;
-      case 'ArrowUp': e.preventDefault(); setActive(ctl.active-1); break;
-      case 'Home': e.preventDefault(); setActive(0); break;
-      case 'End': e.preventDefault(); setActive(opts.length-1); break;
-      case 'Enter': case ' ': e.preventDefault(); choose(ctl.active); break;
-      case 'Escape': e.preventDefault(); e.stopPropagation(); ctl.close(true); break;
-      case 'Tab': ctl.close(false); break;
-    }
-  });
-  list.addEventListener('click', e=>{ const o=e.target.closest('.pref-opt'); if(o) choose(opts.indexOf(o)); });
-  list.addEventListener('pointermove', e=>{ const o=e.target.closest('.pref-opt'); if(o) setActive(opts.indexOf(o)); });
-  root.addEventListener('focusout', e=>{ if(!list.hidden && !root.contains(e.relatedTarget)) ctl.close(false); });
-
-  prefControls.push(ctl);
-  ctl.render();
-  return ctl;
-}
-function mountPrefs(){
-  document.querySelectorAll('[data-prefs="compact"]').forEach(host=>{
-    host.append(createPref('language',false).root, createPref('theme',false).root);
-  });
-  document.querySelectorAll('[data-prefs="menu"]').forEach(host=>{
-    ['language','theme'].forEach(kind=>{
-      const field = document.createElement('div'); field.className='menu-field';
-      const label = document.createElement('span'); label.className='menu-label'; label.id=`${host.id}-${kind}-label`;
-      label.dataset.i18n = PREF_KINDS[kind].labelKey; label.textContent = t(PREF_KINDS[kind].labelKey);
-      const ctl = createPref(kind,true); ctl.labelId = label.id; ctl.render();
-      field.append(label, ctl.root); host.append(field);
-    });
-    host.addEventListener('keydown', e=>{
-      if(e.key!=='Escape' || openPref) return;
-      const btn=document.querySelector(`[data-menu-toggle][aria-controls="${host.id}"]`);
-      setMenu(btn,false); btn.focus();
-    });
-  });
-  document.querySelectorAll('[data-menu-toggle]').forEach(btn=>{
-    setMenu(btn,false);
-    btn.addEventListener('click', ()=>setMenu(btn, btn.getAttribute('aria-expanded')!=='true'));
-  });
-  document.addEventListener('pointerdown', e=>{ if(openPref && !openPref.root.contains(e.target)) openPref.close(false); });
-}
-function setMenu(btn, open){
-  const menu=$(btn.getAttribute('aria-controls'));
-  menu.classList.toggle('open', open);
-  btn.setAttribute('aria-expanded', open);
-  btn.setAttribute('aria-label', t(open?'menu.close':'menu.open'));
-  btn.innerHTML = IC[open?'x':'menu'];
-  if(!open && openPref && menu.contains(openPref.root)) openPref.close(false);
-}
-function renderPrefs(){
-  prefControls.forEach(c=>c.render());
-  document.querySelectorAll('[data-menu-toggle]').forEach(btn=>btn.setAttribute('aria-label', t(btn.getAttribute('aria-expanded')==='true'?'menu.close':'menu.open')));
-}
-
-/* Re-render every visible piece of text in the new language. */
-function applyLanguage(){
-  LANG = FarmPrefs.get().resolvedLanguage;
-  applyStaticI18n();
-  renderSeason(); renderMeters(); renderControls(); renderFieldLabels();
-  if(ovOpen('ov-tut')) renderTut();
-  if(ovOpen('ov-report') && lastReport) renderReport();
-  if($('banner').classList.contains('show')) renderBanner();
-  if($('scr-final').classList.contains('active')) renderFinal();
-  renderPrefs();
-}
-FarmPrefs.subscribe((state, change)=>{ if(change.language) applyLanguage(); else renderPrefs(); });
-// The system theme can change without the preference changing (option hint "System · Dark").
-try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', renderPrefs); }catch(e){}
-window.addEventListener('languagechange', renderPrefs);
-
-/* =========================================================
-   EVENTS
-   ========================================================= */
-document.addEventListener('click', e=>{
-  const c=e.target.closest('[data-crop]'); if(c&&!c.disabled){ G.crop=c.dataset.crop; renderControls(); return; }
-  const i=e.target.closest('[data-irr]'); if(i&&!i.disabled){ G.irr=+i.dataset.irr; renderControls(); return; }
-  const f=e.target.closest('[data-fert]'); if(f&&!f.disabled){ G.fert=f.dataset.fert; renderControls(); return; }
-});
-$('btn-confirm').onclick = confirmDecision;
-$('btn-help').onclick = ()=>openTutorial(0);
-$('btn-pause').onclick = ()=>openOv('ov-pause');
-$('btn-resume').onclick = ()=>closeOv('ov-pause');
-$('btn-pause-help').onclick = ()=>{ closeOv('ov-pause'); openTutorial(0); };
-$('btn-restart').onclick = restart;
-$('btn-retry').onclick = ()=>boot(false,'game');
-$('btn-offline').onclick = ()=>{ show('game'); };
-$('view-farm').onclick = ()=>setView(false);
-$('view-sat').onclick = ()=>setView(true);
-document.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if($('ov-pause').classList.contains('show')) closeOv('ov-pause'); else if($('ov-tut').classList.contains('show')) closeOv('ov-tut'); } });
-
-/* Design review dock: jump to any screen/state */
-$('dock-btn').onclick = ()=>{ const o=$('dock').classList.toggle('open'); $('dock-btn').setAttribute('aria-expanded',o); };
-function mockHistory(win){
-  newGame();
-  G.history = win
-    ? [{season:0,crop:'wheat',irr:0,fert:'compost',state:'healthy',health:94},{season:1,crop:'sorghum',irr:2,fert:'none',state:'healthy',health:88},{season:2,crop:'maize',irr:0,fert:'green',state:'healthy',health:91}]
-    : [{season:0,crop:'maize',irr:2,fert:'synthetic',state:'overwater',health:58,wasted:true},{season:1,crop:'maize',irr:1,fert:'none',state:'drought',health:31},{season:2,crop:'chickpea',irr:1,fert:'synthetic',state:'overwater',health:44,wasted:true}];
-  G.m = win ? {health:91,soil:79,water:62,budget:13240,sus:77} : {health:44,soil:41,water:18,budget:7180,sus:22};
-  G.season=2; G.phase='done';
-}
-document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
-  const go=b.dataset.go; $('dock').classList.remove('open'); closeAllOv(); clearInterval(bootTimer);
-  const fieldPreview = (state, crop, weather, season)=>{
-    newGame(); G.season=season; G.crop=crop; G.phase='plan'; renderSeason(); renderMeters(); renderControls();
-    G.phase='done'; renderControls(); setFieldState(state, weather); show('game');
-  };
-  switch(go){
-    case 'loading': boot(false,'tutorial'); clearInterval(bootTimer); { const l=[...$('boot-steps').children]; l.forEach((li,i)=>li.className=i<2?'done':i===2?'now':''); $('boot-bar').style.width='50%'; } break;
-    case 'error': show('error'); break;
-    case 'tutorial': restart(); openTutorial(0); break;
-    case 'game': restart(); break;
-    case 'final-win': mockHistory(true); showFinal(); break;
-    case 'final-fail': mockHistory(false); showFinal(); break;
-    case 'healthy': fieldPreview('healthy','wheat','showers',0); break;
-    case 'drought': fieldPreview('drought','maize','heat',1); break;
-    case 'overwater': fieldPreview('overwater','chickpea','rain',2); break;
-    case 'lownutrients': fieldPreview('lownutrients','maize','showers',0); break;
-    case 'harvest': mockHistory(true); renderSeason(); renderMeters(); renderControls(); renderPlants(); setFieldState('harvest','clear'); show('game'); showBanner(true); break;
-    case 'failed': mockHistory(false); G.crop='chickpea'; renderSeason(); renderMeters(); renderControls(); renderPlants(); setFieldState('failed','cloudy'); show('game'); showBanner(false); break;
-    case 'report': { restart(); G.season=1; G.crop='maize'; G.irr=1; renderSeason(); renderControls(); confirmDecision(); } break;
-  }
-});
-
-/* =========================================================
-   INIT
-   ========================================================= */
-applyStaticI18n();
-hydrateIcons();
-mountPrefs();
-(function rain(){ let h=''; for(let k=0;k<60;k++) h+=`<span style="left:${Math.random()*110}%;animation-duration:${(.6+Math.random()*.5).toFixed(2)}s;animation-delay:${(-Math.random()*2).toFixed(2)}s"></span>`; $('rain').innerHTML=h; })();
-buildField();
-renderSeason(); renderMeters(); renderControls(); setFieldState('planning', SEASONS[0].weather);
-const hash = location.hash.replace('#','');
-if(hash){ const b=document.querySelector(`[data-go="${hash}"]`); b ? b.click() : boot(); } else boot();
-</script>
+<script src="js/engine.js"></script>
+<script src="js/nasa-client.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
