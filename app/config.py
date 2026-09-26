@@ -32,11 +32,19 @@ class Settings:
     # repr=False keeps the key out of tracebacks and debug output.
     nasa_api_key: str | None = field(default=None, repr=False)
     nasa_power_base_url: str = "https://power.larc.nasa.gov/api/temporal/daily/point"
-    nasa_timeout_seconds: float = 20.0
+    # One attempt; retries use exponential backoff, all inside the overall deadline
+    # (Vercel functions stop after 30 s).
+    nasa_timeout_seconds: float = 15.0
+    nasa_retries: int = 2
+    nasa_retry_backoff_seconds: float = 0.8
+    nasa_deadline_seconds: float = 24.0
     geocoding_base_url: str = "https://geocoding-api.open-meteo.com/v1/search"
     geocoding_timeout_seconds: float = 8.0
-    # Historical NASA POWER seasons do not change, so results can be cached for a day.
-    cache_ttl_seconds: float = 24 * 3600
+    # Historical POWER data rarely change, so a cached response is used for 30 days;
+    # after that it is refreshed, and kept as a fallback if POWER is unavailable.
+    cache_ttl_seconds: float = 30 * 24 * 3600
+    # None disables the disk cache (memory cache only).
+    cache_dir: Path | None = None
     cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
 
 
@@ -46,6 +54,15 @@ def _parse_origins(raw: str | None) -> tuple[str, ...]:
     return tuple(origin.strip() for origin in raw.split(",") if origin.strip())
 
 
+def _cache_dir(raw: str | None) -> Path | None:
+    if raw is not None:
+        return Path(raw) if raw.strip() else None
+    # Serverless functions can only write to /tmp (kept while the instance is warm).
+    if os.getenv("VERCEL"):
+        return Path("/tmp/farm-navigator-cache")
+    return PROJECT_ROOT / ".cache" / "nasa_power"
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings(
@@ -53,6 +70,9 @@ def get_settings() -> Settings:
         nasa_power_base_url=os.getenv("NASA_POWER_BASE_URL", Settings.nasa_power_base_url),
         nasa_timeout_seconds=float(os.getenv("NASA_TIMEOUT_SECONDS", Settings.nasa_timeout_seconds)),
         geocoding_base_url=os.getenv("GEOCODING_BASE_URL", Settings.geocoding_base_url),
+        nasa_retries=int(os.getenv("NASA_RETRIES", Settings.nasa_retries)),
+        nasa_deadline_seconds=float(os.getenv("NASA_DEADLINE_SECONDS", Settings.nasa_deadline_seconds)),
         cache_ttl_seconds=float(os.getenv("CACHE_TTL_SECONDS", Settings.cache_ttl_seconds)),
+        cache_dir=_cache_dir(os.getenv("CACHE_DIR")),
         cors_origins=_parse_origins(os.getenv("CORS_ORIGINS")),
     )

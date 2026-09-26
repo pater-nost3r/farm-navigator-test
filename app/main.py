@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api import game, geocode, nasa
 from app.config import PROJECT_ROOT, get_settings
-from app.models.responses import DISCLAIMER, HealthResponse
+from app.models.api import DISCLAIMER, HealthResponse
 from app.services.geocoding import GeocodingService
 from app.services.nasa_power import NasaPowerService
 

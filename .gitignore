@@ -14,3 +14,8 @@ dist/
 # Node
 node_modules/
 .next/
+
+# Local caches
+.cache/
+.mypy_cache/
+.ruff_cache/

@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from app.config import get_settings
-from app.models.climate import GeocodeResponse
+from app.models.api import GeocodeResponse
 from app.services.geocoding import SOURCE, GeocodingError, GeocodingService
 
 router = APIRouter(prefix="/api", tags=["Location"])

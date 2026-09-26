@@ -1,13 +1,14 @@
 /* =========================================================
    Farm Navigator — UI controller
-   Game rules live in js/engine.js (FarmEngine), NASA data loading in
-   js/nasa-client.js (FarmData), language/theme in the inline FarmPrefs.
-   This file only renders state and wires up the controls.
+   The game is simulated on the server (FastAPI, app/services/engine.py)
+   from NASA POWER daily data. This file renders what the server returns,
+   checks the plan with the same rules before sending it (js/rules.js),
+   and wires up the controls. Language/theme: the inline FarmPrefs.
    ========================================================= */
 (function () {
 'use strict';
 
-const E = FarmEngine;
+const R = FarmRules;
 const client = FarmData.createClient();
 
 /* =========================================================
@@ -21,9 +22,10 @@ let LANG = FarmPrefs.get().resolvedLanguage;
 function t(key, vars){
   let s = I18N[LANG] && I18N[LANG][key];
   if(s == null){ s = I18N.en[key]; console.warn(`[i18n] missing "${key}" for "${LANG}"`); }
-  if(s == null){ console.error(`[i18n] unknown key "${key}"`); return ''; }
+  if(s == null){ console.error(`[i18n] unknown key "${key}"`); return key; }
   return vars ? s.replace(/\{\{(\w+)\}\}/g, (m,k)=> k in vars ? vars[k] : m) : s;
 }
+const has = key => I18N.en[key] != null;
 const locale = ()=> LANG==='ru' ? 'ru-RU' : 'en-US';
 const num = (n, d=0) => Number(n).toLocaleString(locale(), { minimumFractionDigits:d, maximumFractionDigits:d });
 const dec = (n, d=2) => num(n, d);
@@ -42,22 +44,33 @@ function applyStaticI18n(root=document){
   }
 }
 function esc(s){ return String(s).replace(/[&<>"']/g, c=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c])); }
-function fmtDate(iso){
+function fmtDate(iso, withYear=true){
   if(!iso) return '';
   const d = new Date(iso.length<=10 ? iso+'T00:00:00' : iso);
-  return isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale(), { day:'numeric', month:'short', year:'numeric' });
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString(locale(), withYear ? { day:'numeric', month:'short', year:'numeric' } : { day:'numeric', month:'short' });
+}
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? String(iso) : d.toLocaleString(locale(), { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
 /* =========================================================
    SAVED STATE (localStorage, all access guarded)
    ========================================================= */
-const KEYS = { progress:'farm-navigator.progress.v1', place:'farm-navigator.location.v1', tutorial:'farm-navigator.tutorial.v1' };
+const KEYS = { progress:'farm-navigator.progress.v2', farm:'farm-navigator.farm.v2', tutorial:'farm-navigator.tutorial.v1' };
 function readJSON(key){ try{ const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
 function writeJSON(key, v){ try{ localStorage.setItem(key, JSON.stringify(v)); }catch(e){ /* private mode or full */ } }
-function readPlace(){
-  const p = readJSON(KEYS.place);
-  return p && FarmData.validCoordinates(p.latitude, p.longitude) ? p : null;
+const SOILS = ['sandy','loam','clay'];
+function readFarm(){
+  const f = readJSON(KEYS.farm);
+  if(!f || !FarmData.validCoordinates(f.latitude, f.longitude) || !SOILS.includes(f.soil)) return null;
+  if(FarmData.dayOfYear(f.start_md)===null || FarmData.dayOfYear(f.end_md)===null) return null;
+  return f;
 }
+
+/* =========================================================
+   ICONS
+   ========================================================= */
 const P = (d, extra='') => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${d}</svg>`;
 const IC = {
   check: P('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
@@ -114,6 +127,14 @@ Object.assign(IC, {
   humid: P('<path d="M8 3.5s4.5 5 4.5 8a4.5 4.5 0 01-9 0c0-3 4.5-8 4.5-8z"/><path d="M17 9s3 3.3 3 5.3a3 3 0 01-6 0c0-2 3-5.3 3-5.3z"/>'),
   shield: P('<path d="M12 3.5l7 3v5.5c0 4.2-3 7.4-7 8.5-4-1.1-7-4.3-7-8.5V6.5z"/><path d="M9 12l2 2 4-4"/>'),
   mulch: P('<path d="M3 18h18"/><path d="M5 18c1-2.5 2.5-3.5 4-3.5M10 18c.8-3 2.5-4.5 4.5-4.5M15 18c.6-2 1.8-3 3.5-3"/><path d="M7 11l2-2M12 10l1.5-2.5M17 11l1.5-1.5"/>'),
+});
+Object.assign(IC, {
+  frost: P('<path d="M12 3v18M4.2 7.5l15.6 9M4.2 16.5l15.6-9"/><path d="M9.5 4.5L12 7l2.5-2.5M9.5 19.5L12 17l2.5 2.5"/>'),
+  clock: P('<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>'),
+  flood: P('<path d="M3 14c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0 3 1.2 4.5 0M3 18.5c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0 3 1.2 4.5 0"/><path d="M12 3.5v6M9.5 7L12 9.5 14.5 7"/>'),
+  sprinkler: P('<path d="M12 21v-7"/><path d="M9 14h6"/><path d="M12 10.5c-3-3-6.5-3.5-9-2.5M12 10.5c3-3 6.5-3.5 9-2.5M12 10.5V4"/>'),
+  drain: P('<path d="M3 8h18"/><path d="M6 8v5a6 6 0 0012 0V8"/><path d="M12 13v7M9.5 17.5L12 20l2.5-2.5"/>'),
+  download: P('<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>'),
 });
 const $ = id => document.getElementById(id);
 const fmt$ = n => (n<0?'−$':'$') + num(Math.abs(Math.round(n)));
@@ -221,7 +242,7 @@ function fence(){
 function plantedCrop(){
   if(pending) return pending.outcome.decision.crop;
   if(phase==='plan') return decision.crop;
-  if(run && run.results.length) return run.results[run.results.length-1].decision.crop;
+  if(game && game.results.length) return game.results[game.results.length-1].decision.crop;
   return null;
 }
 function renderPlants(){
@@ -254,51 +275,55 @@ function setTank(pct){
   w.setAttribute('y', (-3-h).toFixed(1)); w.setAttribute('height', h.toFixed(1));
 }
 
+
 /* =========================================================
    STATE
    ========================================================= */
-const PRESETS = [
-  { preset:'kansas', latitude:38.84, longitude:-97.61 },
-  { preset:'almaty', latitude:43.25, longitude:76.91 },
-  { preset:'kyiv', latitude:50.45, longitude:30.52 },
-  { preset:'delhi', latitude:28.61, longitude:77.21 },
-  { preset:'nairobi', latitude:-1.29, longitude:36.82 },
-  { preset:'pergamino', latitude:-33.89, longitude:-60.57 },
-];
 const LEVEL_COLORS = ['#3E9B4F','#1E6FD9','#8C5E3C','#D0632A','#2A8FA8','#C9971B','#7A5AA6'];
 const LEVEL_ICONS = ['sprout','drop','soil','heat','rain','coin','globe'];
 const STATES = {
   planning:     { color:'#6D8A5E', ic:'sprout' },
+  growing:      { color:'#3E9B4F', ic:'sprout' },
   healthy:      { color:'#3E9B4F', ic:'leaf' },
   drought:      { color:'#D07A1E', ic:'heat' },
   heatstress:   { color:'#D0632A', ic:'thermo' },
   overwater:    { color:'#1E6FD9', ic:'rain' },
+  frost:        { color:'#5A7D8C', ic:'frost' },
+  immature:     { color:'#8A9A5B', ic:'clock' },
   lownutrients: { color:'#7A5AA6', ic:'soil' },
   disease:      { color:'#8A6D3B', ic:'alert' },
   harvest:      { color:'#C9971B', ic:'basket' },
   failed:       { color:'#8E2A1F', ic:'x' },
 };
 const WEATHER_IC = { showers:'rain', heat:'heat', rain:'rain', clear:'sun', cloudy:'cloud' };
-const FERT_UI = { none:{ ic:'none', bg:'#B7A68A' }, compost:{ ic:'compost', bg:'#8C5E3C' }, synthetic:{ ic:'flask', bg:'#7A5AA6' }, green:{ ic:'legume', bg:'#3E9B4F' } };
-const PROT_UI = { none:{ ic:'none', bg:'#B7A68A' }, mulch:{ ic:'mulch', bg:'#A07A52' }, cover:{ ic:'shield', bg:'#2E8B3E' } };
+const METHOD_UI = { flood:{ ic:'flood', bg:'#6B8FB5' }, sprinkler:{ ic:'sprinkler', bg:'#1E6FD9' }, drip:{ ic:'drop', bg:'#2A8FA8' } };
+const CARE_UI = { none:{ ic:'none', bg:'#B7A68A' }, mulch:{ ic:'mulch', bg:'#A07A52' }, cover_crop:{ ic:'legume', bg:'#3E9B4F' },
+  min_till:{ ic:'shield', bg:'#6D8A5E' }, drainage:{ ic:'drain', bg:'#5A7D8C' } };
+const CATEGORY_ORDER = ['nasa','player','computed','assumption'];
 
-let progress = E.sanitizeProgress(readJSON(KEYS.progress));
-let place = readPlace();
-let climate = null;      // { status: live|cached|demo, origin, data, savedAt, stale }
-let run = null;          // engine state of the level being played
+let model = null;         // game rules from GET /api/game/config
+let progress = R.emptyProgress();
+let farm = readFarm();    // { latitude, longitude, start_md, end_md, soil, place:{...} }
+let draft = null;         // farm being edited on the setup screen
+let demoMode = false;
+let archive = null;       // GET /api/nasa/archive response
+let game = null;          // { level, year, decisions, run, season, results, fit, data }
 let decision = emptyDecision();
-let phase = 'idle';      // plan | growing | report | done
-let pending = null;      // { prevRun, next, outcome, best } while a season report is shown
-let lastEval = null;     // evaluation shown on the level result screen
-let briefLevel = null;
-let whatIf = null;
+let phase = 'idle';       // plan | growing | report | done
+let pending = null;       // POST /api/game/turn response while it is animated and reported
+let lastEval = null;      // { ev, game } on the level result screen
+let brief = null;         // { levelId, year, error }
+let whatIf = null;        // { season, field, value, result, error, busy }
 let paused = false;
-let gameToken = 0;       // invalidates animations when the player leaves a level
+let gameToken = 0;        // invalidates animations when the player leaves a level
 let searchResults = null;
 let searchState = { key:'', vars:null, err:false };
+let lastError = null;
+let bootStage = 'config'; // which request the error screen retries: config | archive
 
 function emptyDecision(prev){
-  return { crop:null, irrigation:null, method: prev && prev.method || 'sprinkler', fertilizer:null, protection:'none' };
+  // The irrigation system usually stays the same between seasons; everything else is chosen again.
+  return { crop:null, method: prev ? prev.method : null, intensity:null, care:null };
 }
 
 /* =========================================================
@@ -306,43 +331,50 @@ function emptyDecision(prev){
    ========================================================= */
 const cropName = id => t(`crops.${id}.name`);
 const levelName = level => t(`levels.${level.key}.name`);
-const irrName = k => t(`irrigation.${E.IRRIGATION[k].id}`);
+const soilName = id => t(`soils.${id}.name`);
 const coordsLabel = p => `${dec(Math.abs(p.latitude))}° ${t(p.latitude>=0?'dir.N':'dir.S')}, ${dec(Math.abs(p.longitude))}° ${t(p.longitude>=0?'dir.E':'dir.W')}`;
-function placeLabel(p){
-  if(!p) return '';
+function placeLabel(f){
+  if(!f) return '';
+  const p = f.place || {};
   if(p.preset) return t(`places.${p.preset}`);
-  if(p.custom) return t('location.custom', { coords: coordsLabel(p) });
-  const parts = [p.name, p.admin1, p.country].filter((x,i,a)=>x && a.indexOf(x)===i);
-  return parts.join(', ');
+  if(p.name) return [p.name, p.admin1, p.country].filter((x,i,a)=>x && a.indexOf(x)===i).join(', ');
+  return t('location.custom', { coords: coordsLabel(f) });
 }
-const isDemo = () => !climate || climate.status==='demo';
-function seasonLabel(s){ return isDemo() ? t('period.demoShort', { n:s.year }) : String(s.year); }
-function periodLabel(s){ return isDemo() ? t('period.demo', { n:s.year }) : `${fmtDate(s.start)} – ${fmtDate(s.end)}`; }
+function mdLabel(md){ const [m,d] = md.split('-').map(Number); return new Date(2001, m-1, d).toLocaleDateString(locale(), { day:'numeric', month:'short' }); }
+const windowLabel = f => `${mdLabel(f.start_md)} – ${mdLabel(f.end_md)}`;
+const isDemo = () => !!(archive && archive.data.status==='demo');
+function seasonTitle(s){
+  if(!s) return '';
+  const name = s.season_name==='tropical' ? t('seasonName.tropical') : t(`seasonName.${s.season_name}`);
+  return `${name} ${yearLabel(s.year, s.start, s.end)}`;
+}
+function yearLabel(year, start, end){
+  if(isDemo()) return t('period.demoYear', { n:year });
+  return start && end && start.slice(0,4)!==end.slice(0,4) ? `${start.slice(0,4)}/${end.slice(2,4)}` : String(year);
+}
+const periodLabel = s => `${fmtDate(s.start)} – ${fmtDate(s.end)}`;
+const decisionPart = (field, v) => v ? t(`${{ crop:'crops', method:'methods', intensity:'intensity', care:'care' }[field]}.${v}.name`) : '—';
 function describeDecision(d){
-  const parts = [cropName(d.crop)];
-  parts.push(d.irrigation ? `${t('describe.irrigation',{ level:irrName(d.irrigation) })} (${t(`methods.${d.method}.name`)})` : t('describe.noIrrigation'));
-  parts.push(d.fertilizer==='none' ? t('describe.noFertilizer') : t(`fertilizers.${d.fertilizer}.name`));
-  if(d.protection && d.protection!=='none') parts.push(t(`protection.${d.protection}.name`));
-  return parts.join(' · ');
+  const irr = d.intensity==='off' ? t('describe.noIrrigation') : `${decisionPart('intensity', d.intensity)} · ${decisionPart('method', d.method)}`;
+  return [cropName(d.crop), irr, decisionPart('care', d.care)].join(' · ');
 }
 function goalValue(metric, v){
   switch(metric){
-    case 'avgYield': case 'minYield': return `${num(v)}%`;
-    case 'reserveEnd': return t('units.points', { n:num(v) });
-    case 'fertilityDelta': case 'erosionDelta': return signed(v);
-    case 'nLeached': return t('units.kgN', { n:num(v) });
-    case 'finalBudget': return fmt$(v);
+    case 'avg_yield': case 'min_yield': return `${num(v)}%`;
+    case 'reserve_end': return t('units.mm', { n:num(v) });
+    case 'fertility_delta': case 'erosion_delta': return signed(v, dec1);
+    case 'n_leached': return t('units.kgN', { n:dec1(v) });
+    case 'final_budget': return fmt$(v);
     default: return num(v);
   }
 }
-const goalText = g => t(`goal.${g.metric}`, { value: goalValue(g.metric, g.value) });
-function statusBadge(){
-  if(!climate) return '';
-  let label;
-  if(climate.status==='live') label = t('status.live');
-  else if(climate.status==='demo') label = t('status.demo');
-  else label = t(climate.stale ? 'status.stale' : 'status.cached', { date: climate.savedAt ? fmtDate(new Date(climate.savedAt).toISOString()) : '' });
-  return `<span class="status ${climate.status}" title="${esc(t(`status.${climate.status}Hint`))}"><i></i>${esc(label)}</span>`;
+const goalText = g => t(`goal.${g.metric}`, { op: g.op==='>=' ? '≥' : g.op==='<=' ? '≤' : g.op, value: goalValue(g.metric, g.value) });
+function statusBadge(data){
+  if(!data) return '';
+  const s = data.status;
+  const label = s==='cached' && data.stale ? t('status.stale') : t(`status.${s}`);
+  const hint = s==='demo' ? t('status.demoHint') : t(`status.${s}Hint`, { time: fmtDateTime(data.fetched_at) });
+  return `<span class="status ${s}${data.stale?' stale':''}" title="${esc(hint)}"><i></i>${esc(label)}</span>`;
 }
 function starsSvg(n, total=3){
   const star = on => `<svg viewBox="0 0 24 24" aria-hidden="true"><path class="${on?'star-on':'star-off'}" stroke-width="1.4" stroke-linejoin="round" d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg>`;
@@ -352,15 +384,15 @@ function toast(msg, ms=3800){
   const el = $('toast'); el.innerHTML = msg; el.classList.add('show');
   clearTimeout(toast.timer); toast.timer = setTimeout(()=>el.classList.remove('show'), ms);
 }
-const sleep = ms => new Promise(r=>setTimeout(r, ms));
-/** Like sleep, but the clock stops while the game is paused. */
+/** Like setTimeout, but the clock stops while the game is paused. */
 function wait(ms){
   return new Promise(resolve=>{
     let left = ms, last = Date.now();
-    const tick = ()=>{ const now = Date.now(); if(!paused) left -= now-last; last = now; if(left<=0) resolve(); else setTimeout(tick, 50); };
-    setTimeout(tick, 50);
+    const tick = ()=>{ const now = Date.now(); if(!paused) left -= now-last; last = now; if(left<=0) resolve(); else setTimeout(tick, 40); };
+    setTimeout(tick, 40);
   });
 }
+function errorKey(e){ return e && e.kind ? e.kind : 'server'; }
 
 /* =========================================================
    SCREENS AND OVERLAYS
@@ -389,61 +421,82 @@ function closeAllOv(){ document.querySelectorAll('.overlay').forEach(o=>o.classL
 function scrollTop(){ try{ window.scrollTo(0,0); }catch(e){ /* not supported */ } }
 
 /* =========================================================
-   LOADING NASA POWER DATA
+   BOOT, LOADING AND ERRORS
    ========================================================= */
 let loadToken = 0;
-async function loadClimate(force=false){
-  if(!place){ showLocation(); return; }
-  const token = ++loadToken;
-  show('loading');
-  $('loading-text').textContent = t('loading.text', { place: placeLabel(place) });
+function loadingSteps(active){
   const lis = [...$('boot-steps').children]; let k = 0;
   const paint = ()=>{ lis.forEach((li,i)=>{ li.className = i<k?'done':i===k?'now':''; }); $('boot-bar').style.width = (k/lis.length*100)+'%'; };
   paint();
-  const timer = setInterval(()=>{ if(k < lis.length-1){ k++; paint(); } }, 450);
+  const timer = active ? setInterval(()=>{ if(k < lis.length-1){ k++; paint(); } }, 500) : null;
+  return ()=>{ clearInterval(timer); k = lis.length; paint(); };
+}
+async function boot(){
+  const token = ++loadToken;
+  bootStage = 'config';
+  show('loading');
+  $('loading-title').textContent = t('loading.connect');
+  $('loading-text').textContent = t('loading.connectText');
+  const done = loadingSteps(false);
   try{
-    const res = await client.loadClimate(place, { force });
+    const cfg = await client.getConfig();
     if(token!==loadToken) return;
-    climate = res;
-    k = lis.length; paint();
-    await sleep(300);
+    model = cfg;
+    progress = R.sanitizeProgress(readJSON(KEYS.progress), model.levels.map(l=>l.id));
+    done();
+    if(farm) loadArchive(); else showLocation();
+  }catch(e){
+    if(token===loadToken) showError(e);
+  }
+}
+async function loadArchive(){
+  if(!farm){ showLocation(); return; }
+  const token = ++loadToken;
+  bootStage = 'archive';
+  show('loading');
+  $('loading-title').textContent = t(demoMode ? 'loading.demoTitle' : 'loading.title');
+  $('loading-text').textContent = t(demoMode ? 'loading.demoText' : 'loading.text', { place: placeLabel(farm), period: windowLabel(farm) });
+  const done = loadingSteps(true);
+  try{
+    const res = await client.loadArchive({ ...farm, demo: demoMode });
     if(token!==loadToken) return;
-    if(res.stale) toast(t('toast.staleCache', { reason: t(`error.${res.error && res.error.kind || 'server'}.short`) }), 6000);
+    archive = res;
+    done();
+    if(res.data.stale) toast(IC.alert + esc(t('toast.staleCache', { time: fmtDateTime(res.data.fetched_at) })), 7000);
     showLevels();
     maybeFirstTutorial();
   }catch(e){
     if(token!==loadToken) return;
+    done();
+    if(e.kind==='rejected' && e.detail && e.detail.error==='invalid_period'){ showLocation(t('location.periodServer', { message:e.detail.message })); return; }
     showError(e);
-  }finally{
-    clearInterval(timer);
   }
 }
-let lastError = null;
-function showError(e){
-  lastError = e;
-  renderError();
-  show('error');
-}
+function showError(e){ lastError = e; renderError(); show('error'); }
 function renderError(){
-  const kind = lastError && lastError.kind || 'server';
+  const kind = errorKey(lastError);
   $('err-title').textContent = t(`error.${kind}.title`);
   $('err-text').textContent = t(`error.${kind}.text`);
   $('err-code').textContent = t('error.code', { kind, status: lastError && lastError.status ? `HTTP ${lastError.status}` : '—' });
+  // Demo is offered only when our server works but NASA POWER does not (the game needs the server either way).
+  $('btn-demo').hidden = !(bootStage==='archive' && ['nasa','timeout'].includes(kind));
+  $('btn-err-location').hidden = bootStage!=='archive';
 }
-function useDemo(){
-  climate = { status:'demo', origin:'demo', data:E.demoClimate(), savedAt:null, stale:false };
-  showLevels();
-  maybeFirstTutorial();
-}
+function useDemo(){ demoMode = true; archive = null; loadArchive(); }
 
 /* =========================================================
-   LOCATION SCREEN
+   FARM SETUP SCREEN
    ========================================================= */
-function showLocation(){ renderLocation(); show('location'); scrollTop(); }
+function showLocation(message){
+  draft = farm ? { ...farm, place:{ ...farm.place } } : { latitude:null, longitude:null, start_md:null, end_md:null, soil:null, place:null };
+  draft.message = message || '';
+  renderLocation(); show('location'); scrollTop();
+}
+function presetById(id){ return model.presets.find(p=>p.id===id); }
 function renderLocation(){
-  $('loc-presets').innerHTML = PRESETS.map((p,i)=>`
-    <button class="place${place && place.preset===p.preset?' current':''}" type="button" data-preset="${i}">
-      <span class="pic">${IC.pin}</span><span><b>${esc(t(`places.${p.preset}`))}</b><small>${esc(t(`places.${p.preset}.note`))} · ${coordsLabel(p)}</small></span>
+  $('loc-presets').innerHTML = model.presets.map(p=>`
+    <button class="place${draft.place && draft.place.preset===p.id?' current':''}" type="button" data-preset="${p.id}">
+      <span class="pic">${IC.pin}</span><span><b>${esc(t(`places.${p.id}`))}</b><small>${esc(t(`places.${p.id}.note`))} · ${coordsLabel(p)}</small></span>
     </button>`).join('');
   $('loc-results').innerHTML = (searchResults||[]).map((p,i)=>`
     <button class="place" type="button" data-result="${i}">
@@ -452,12 +505,63 @@ function renderLocation(){
   const msg = $('loc-msg');
   msg.textContent = searchState.key ? t(searchState.key, searchState.vars) : '';
   msg.classList.toggle('err', searchState.err);
-  $('loc-current').innerHTML = place ? `
-    <div class="place current" style="cursor:default"><span class="pic">${IC.check}</span>
-      <span><b>${esc(t('location.current'))}: ${esc(placeLabel(place))}</b><small>${coordsLabel(place)}</small></span></div>
-    <div class="boot-actions" style="justify-content:flex-start;margin-top:10px">
-      <button class="btn btn-primary" type="button" id="btn-loc-continue">${IC.arrow} ${esc(t('actions.continue'))}</button></div>` : '';
-  if(place) $('btn-loc-continue').onclick = ()=> climate && climate.status!=='demo' ? showLevels() : loadClimate(false);
+  const hasPlace = FarmData.validCoordinates(draft.latitude, draft.longitude);
+  $('loc-current').innerHTML = hasPlace ? `<div class="place current" style="cursor:default"><span class="pic">${IC.check}</span>
+      <span><b>${esc(placeLabel(draft))}</b><small>${coordsLabel(draft)} · ${esc(t(draft.latitude>=0?'hemisphere.north':'hemisphere.south'))}${Math.abs(draft.latitude)<23.44?' · '+esc(t('hemisphere.tropics')):''}</small></span></div>`
+    : `<p class="msg">${esc(t('location.noPlace'))}</p>`;
+  renderPeriod();
+  renderSoilPick();
+  renderSetupCheck();
+}
+const MONTHS = [1,2,3,4,5,6,7,8,9,10,11,12];
+function mdParts(md){ return md ? md.split('-').map(Number) : [null,null]; }
+function renderPeriod(){
+  const month = m => new Date(2001, m-1, 1).toLocaleDateString(locale(), { month:'long' });
+  ['start','end'].forEach(which=>{
+    const [m,d] = mdParts(draft[`${which}_md`]);
+    $(`per-${which}-m`).innerHTML = `<option value="">—</option>` + MONTHS.map(k=>`<option value="${k}"${k===m?' selected':''}>${esc(month(k))}</option>`).join('');
+    $(`per-${which}-d`).value = d || '';
+  });
+}
+function readPeriodInputs(){
+  ['start','end'].forEach(which=>{
+    const m = Number($(`per-${which}-m`).value), d = Number($(`per-${which}-d`).value);
+    draft[`${which}_md`] = m && d ? `${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}` : null;
+  });
+}
+function renderSoilPick(){
+  const soils = R.options(model.soils), root = model.farm.root_zone_m;
+  const maxTaw = Math.max(...Object.values(soils).map(s=>s.awc_mm_per_m*root));
+  const bar = (label, v, good) => `<div class="srow"><span>${esc(label)}</span><div class="bar"><i style="width:${Math.round(v*100)}%;background:${good?'var(--green-500)':'var(--amber-500)'}"></i></div></div>`;
+  $('soil-pick').innerHTML = SOILS.map(id=>{
+    const s = soils[id];
+    return `<button class="soil-opt" type="button" data-soil="${id}" aria-pressed="${draft.soil===id}">
+      <span class="soil-top"><span class="soil-sw soil-${id}" aria-hidden="true"></span><b>${esc(soilName(id))}</b></span>
+      <small>${esc(t(`soils.${id}.desc`))}</small>
+      ${bar(t('soilProps.holding', { mm:num(s.awc_mm_per_m*root) }), s.awc_mm_per_m*root/maxTaw, true)}
+      ${bar(t('soilProps.drainage'), s.drainage_rate, s.drainage_rate<0.8)}
+      ${bar(t('soilProps.infiltration'), s.infiltration_mm_day/60, true)}
+      ${bar(t('soilProps.erosion'), Math.max(s.water_erodibility, s.wind_erodibility), false)}
+    </button>`;
+  }).join('');
+}
+function setupCheck(){
+  const cfg = model.data;
+  const problems = [];
+  if(!FarmData.validCoordinates(draft.latitude, draft.longitude)) problems.push(t('location.needPlace'));
+  const per = draft.start_md && draft.end_md ? FarmData.checkPeriod(draft.start_md, draft.end_md, cfg.min_period_days, cfg.max_period_days) : { ok:false, reason:'missing', days:0 };
+  if(!per.ok) problems.push(t(`location.period.${per.reason}`, { days:per.days, min:cfg.min_period_days, max:cfg.max_period_days }));
+  if(!draft.soil) problems.push(t('location.needSoil'));
+  return { ok: !problems.length, problems, period: per };
+}
+function renderSetupCheck(){
+  const c = setupCheck();
+  const per = c.period;
+  $('per-info').textContent = per.days ? t(per.crossesYear ? 'location.periodDaysCross' : 'location.periodDays', { days:per.days }) : '';
+  const msgs = [draft.message, ...c.problems].filter(Boolean);
+  $('setup-msg').textContent = msgs.join(' ');
+  $('setup-msg').classList.toggle('show', msgs.length>0);
+  $('btn-load').disabled = !c.ok;
 }
 async function searchPlaces(q){
   q = q.trim();
@@ -469,43 +573,64 @@ async function searchPlaces(q){
     searchState = results.length ? { key:'location.found', vars:{ n:results.length }, err:false } : { key:'location.none', vars:{ q }, err:true };
   }catch(e){
     searchResults = null;
-    searchState = { key:`location.err.${e.kind || 'server'}`, vars:null, err:true };
+    searchState = { key:`location.err.${errorKey(e)}`, vars:null, err:true };
   }
   renderLocation();
 }
-function choosePlace(p){
-  place = p; writeJSON(KEYS.place, p);
-  climate = null; run = null;
-  loadClimate(false);
+function setDraftPlace(p, place){
+  draft.latitude = Math.round(Number(p.latitude)*1e4)/1e4;
+  draft.longitude = Math.round(Number(p.longitude)*1e4)/1e4;
+  draft.place = place;
+  draft.message = '';
+  renderLocation();
+}
+function confirmFarm(){
+  readPeriodInputs();
+  if(!setupCheck().ok){ renderSetupCheck(); return; }
+  farm = { latitude:draft.latitude, longitude:draft.longitude, start_md:draft.start_md, end_md:draft.end_md, soil:draft.soil, place:draft.place || {} };
+  writeJSON(KEYS.farm, farm);
+  demoMode = false; archive = null;
+  loadArchive();
 }
 
 /* =========================================================
    LEVEL SELECT
    ========================================================= */
-function showLevels(){ phase = 'idle'; run = null; pending = null; gameToken++; closeAllOv(); renderLevels(); show('levels'); scrollTop(); }
+function showLevels(){ phase = 'idle'; game = null; pending = null; gameToken++; paused = false; closeAllOv(); renderLevels(); show('levels'); scrollTop(); }
+function provenanceHtml(data, compact){
+  if(data.status==='demo') return `<p class="provenance">${esc(t('prov.demo'))}</p>`;
+  const params = Object.entries(data.parameters).map(([p,i])=>`<span class="chip-s${i.available===false?' off':''}" title="${esc(i.longname||p)}">${esc(p)} · ${esc(i.units)}</span>`).join('');
+  return `<div class="prov">
+    <p class="provenance">${esc(t('prov.source'))}: ${esc(data.source)} · ${esc(t('prov.community', { c:data.community }))} · ${esc(t('prov.timeStandard', { ts:data.time_standard }))}</p>
+    <p class="provenance">${esc(t('prov.point', { coords: coordsLabel(data.location), elev: num(data.location.elevation_m) }))} · ${esc(t('prov.fetched', { time: fmtDateTime(data.fetched_at) }))}${data.stale ? ' · '+esc(t('prov.stale')) : ''}</p>
+    ${compact ? '' : `<div class="chips">${params}</div>`}
+    <p class="provenance"><a href="${esc(data.request_url)}" target="_blank" rel="noopener noreferrer">${esc(t('prov.request'))}</a> · ${esc(t('prov.years', { from:data.years.first, to:data.years.latest_complete }))}</p>
+  </div>`;
+}
+function fitYears(levelId){ return archive.level_fit[levelId] || { type:'any', years:[], suggestions:[] }; }
 function renderLevels(){
-  const demo = isDemo();
-  const seasons = climate.data.seasons;
-  $('lv-place').textContent = demo ? t('levels.demoPlace') : placeLabel(place);
-  $('lv-coords').textContent = demo ? t('levels.demoNote')
-    : `${coordsLabel(place)} · ${t('levels.seasons', { months: t(`months.${climate.data.hemisphere || 'north'}`), from: seasons[0].year, to: seasons[seasons.length-1].year })}`;
-  $('lv-status').innerHTML = statusBadge();
-  $('btn-refresh').hidden = !place;
-  $('btn-refresh').lastElementChild.textContent = t(demo ? 'actions.loadNasa' : 'actions.refresh');
-  $('lv-intro').textContent = t('levels.intro');
-  $('level-grid').innerHTML = E.LEVELS.map((level,i)=>{
-    const unlocked = E.isUnlocked(progress, level.id);
+  $('lv-place').textContent = isDemo() ? t('levels.demoPlace') : placeLabel(farm);
+  $('lv-coords').textContent = `${coordsLabel(farm)} · ${windowLabel(farm)} · ${soilName(farm.soil)}`;
+  $('lv-status').innerHTML = statusBadge(archive.data);
+  $('btn-refresh').lastElementChild.textContent = t(isDemo() ? 'actions.loadNasa' : 'actions.refresh');
+  $('lv-intro').textContent = t('levels.intro', { from:archive.data.years.first, to:archive.data.years.latest_complete });
+  $('lv-prov').innerHTML = provenanceHtml(archive.data, false);
+  $('level-grid').innerHTML = model.levels.map((level,i)=>{
+    const unlocked = R.isUnlocked(progress, level.id);
     const best = progress.best[level.id];
-    const picked = E.pickSeasons(climate.data, level);
+    const fit = fitYears(level.id);
+    const fitText = fit.years.length
+      ? t(fit.type==='any' ? 'levels.fitAny' : 'levels.fitSome', { n:fit.years.length, years: fit.suggestions.slice(0,3).map(y=>yearLabel(y)).join(', ') })
+      : t('levels.fitNone');
     return `<article class="card level${unlocked?'':' locked'}">
-      <div class="level-top"><span class="num" style="background:${LEVEL_COLORS[i]}">${level.id}</span>
-        <div><h3>${esc(levelName(level))}</h3><span class="best">${esc(t('levels.difficulty', { n:level.id }))}</span></div></div>
+      <div class="level-top"><span class="num" style="background:${LEVEL_COLORS[i]}">${IC[LEVEL_ICONS[i]]}</span>
+        <div><h3>${level.id}. ${esc(levelName(level))}</h3><span class="best">${esc(t('levels.seasonsCount', { n:level.seasons }))} · ${esc(t(`weatherType.${fit.type}`))}</span></div></div>
       <p>${esc(t(`levels.${level.key}.short`))}</p>
-      <div class="chips">${picked.map(p=>`<span class="chip-s">${esc(seasonLabel(p.season))} · ${esc(t(`pick.${p.pickedAs}`))}</span>`).join('')}</div>
+      <div class="chips"><span class="chip-s${fit.years.length?'':' warn'}">${esc(fitText)}</span></div>
       <div class="foot">
         <div><div class="mini-stars" role="img" aria-label="${esc(t('levels.starsAria', { n: best ? best.stars : 0 }))}">${starsSvg(best ? best.stars : 0)}</div>
           ${best ? `<span class="best">${esc(t(best.passed ? 'levels.best' : 'levels.notPassed', { score:best.score }))}</span>` : ''}</div>
-        <button class="btn ${unlocked?'btn-primary':''}" type="button" data-level="${level.id}" ${unlocked?'':'disabled'}>
+        <button class="btn ${unlocked && fit.years.length?'btn-primary':''}" type="button" data-level="${level.id}" ${unlocked && fit.years.length?'':'disabled'}>
           ${unlocked ? (best ? IC.refresh + esc(t('actions.replay')) : IC.play + esc(t('actions.play'))) : IC.lock + esc(t('levels.locked'))}</button>
       </div>
       ${unlocked ? '' : `<p class="best">${esc(t('levels.unlockHint', { n:level.id-1 }))}</p>`}
@@ -515,253 +640,309 @@ function renderLevels(){
 }
 
 /* =========================================================
-   LEVEL BRIEF
+   LEVEL BRIEF (choose the historical season)
    ========================================================= */
-function openBrief(id){ briefLevel = id; renderBrief(); openOv('ov-level'); }
+function seasonByYear(y){ return archive.seasons.find(s=>s.year===y); }
+function openBrief(id){
+  const fit = fitYears(id);
+  brief = { levelId:id, year: fit.suggestions[0] ?? fit.years[fit.years.length-1] ?? null, error:null, busy:false };
+  renderBrief(); openOv('ov-level');
+}
+function anomalyChips(s){
+  if(!s.anomaly.available) return `<span class="ev calm">${esc(t('anomaly.noReference'))}</span>`;
+  return s.anomaly.flags.length
+    ? s.anomaly.flags.map(f=>`<span class="ev ${f}">${esc(t(`anomaly.${f}`))}</span>`).join('')
+    : `<span class="ev calm">${esc(t('anomaly.typical'))}</span>`;
+}
 function renderBrief(){
-  const level = E.levelById(briefLevel), start = level.start;
-  const picked = E.pickSeasons(climate.data, level);
-  const b = climate.data.baseline;
+  const level = R.levelById(model, brief.levelId), start = level.start, fit = fitYears(level.id);
+  const years = [...new Set([...fit.suggestions, ...fit.years.slice().reverse()])];
+  const sel = brief.year !== null ? seasonByYear(brief.year) : null;
+  const yearBtn = y => { const s = seasonByYear(y), f = s.features;
+    return `<button class="year${y===brief.year?' on':''}" type="button" data-year="${y}" aria-pressed="${y===brief.year}">
+      <b>${esc(yearLabel(y, s.start, s.end))}</b><small>${num(f.rain_total_mm)} mm · ${esc(t('brief.hotShort', { n:f.hot_days }))} · ${esc(t('brief.heavyShort', { n:f.heavy_rain_days }))}</small></button>`; };
+  const loses = [...level.lose.map(l=>t(`lose.${l.metric}`, { value: goalValue(l.metric, l.value) })), ...(level.seasons>1 ? [t('lose.bankrupt')] : []), t('lose.goals')];
   $('brief').innerHTML = `
-    <div class="eyebrow">${esc(t('brief.eyebrow', { n:level.id, total:E.LEVELS.length }))}</div>
+    <div class="eyebrow">${esc(t('brief.eyebrow', { n:level.id, total:model.levels.length }))}</div>
     <h2 id="brief-title">${esc(levelName(level))}</h2>
     <p class="story">${esc(t(`levels.${level.key}.story`))}</p>
     <div><h3>${esc(t('brief.goal'))}</h3><ul class="goal-list">${level.goals.map(g=>`<li><span class="gi">${IC.flag}</span>${esc(goalText(g))}</li>`).join('')}</ul></div>
-    <div><h3>${esc(t('brief.seasons', { n:picked.length }))}</h3><div class="season-rows">${picked.map(p=>{
-      const s = p.season, ev = E.seasonEvents(s, b);
-      return `<div class="season-row"><b>${esc(periodLabel(s))}</b><span>· ${esc(t(`pick.${p.pickedAs}`))}</span>
-        <span>· ${dec1(s.temperature_c)} °C · ${num(s.rainfall_mm)} mm</span>${ev.map(e=>`<span class="ev ${e.type}">${esc(t(`events.${e.type}`))}</span>`).join('')}</div>`;
-    }).join('')}</div></div>
+    <div><h3>${esc(t('brief.stars'))}</h3><p class="rules">${esc(t('brief.starsText', { yield:level.stars.yield, water:level.stars.water, soil:signed(level.stars.soil) }))}</p></div>
+    <div><h3>${esc(t('brief.weather'))}</h3><p class="rules">${esc(t(`weatherRule.${fit.type}`, weatherRuleVars(level)))}</p>
+      <h3 style="margin-top:10px">${esc(t(level.seasons>1 ? 'brief.chooseStart' : 'brief.chooseYear', { n:level.seasons }))}</h3>
+      ${years.length ? `<div class="years" role="group">${years.map(yearBtn).join('')}</div>` : `<p class="missing show">${esc(t('brief.noYears'))}</p>`}
+    </div>
+    ${sel ? `<div class="season-row"><b>${esc(seasonTitle(sel))}</b><span>· ${esc(periodLabel(sel))}${level.seasons>1 ? ' '+esc(t('brief.andNext', { n:level.seasons-1 })) : ''}</span>${anomalyChips(sel)}</div>
+      <p class="note-sm">${esc(t('brief.reference', { n:sel.anomaly.reference_years.length, from:archive.data.years.first, to:archive.data.years.latest_complete }))}</p>` : ''}
     <div><h3>${esc(t('brief.start'))}</h3><div class="kv">
       <div><small>${esc(t('meters.budget'))}</small><b>${fmt$(start.budget)}</b></div>
-      <div><small>${esc(t('meters.water'))}</small><b>${num(start.reserve)}%</b></div>
-      <div><small>${esc(t('meters.fertility'))}</small><b>${num(E.fertility(start.soil))}</b></div>
-      <div><small>${esc(t('soil.n'))}</small><b>${num(start.soil.n)}</b></div>
+      <div><small>${esc(t('meters.water'))}</small><b>${esc(t('units.mm', { n:num(start.reserve_mm) }))}</b></div>
+      <div><small>${esc(t('meters.fertility'))}</small><b>${num(R.fertility(model, start.soil))}</b></div>
+      <div><small>${esc(t('soil.n'))}</small><b>${esc(t('units.kgN', { n:num(start.soil.n) }))}</b></div>
+      <div><small>${esc(t('soil.om'))}</small><b>${dec1(start.soil.om)}%</b></div>
       <div><small>${esc(t('brief.previous'))}</small><b style="font-size:15px">${esc(start.history.length ? start.history.map(cropName).join(' → ') : '—')}</b></div>
+      ${level.economy.price!==1 || level.economy.cost!==1 ? `<div><small>${esc(t('brief.economy'))}</small><b style="font-size:15px">${esc(t('brief.economyText', { price:signed(Math.round((level.economy.price-1)*100)), cost:signed(Math.round((level.economy.cost-1)*100)) }))}</b></div>` : ''}
     </div></div>
-    <p class="rules"><b>${esc(t('brief.winLabel'))}</b> ${esc(t('brief.win'))}<br><b>${esc(t('brief.loseLabel'))}</b> ${esc(t('brief.lose', { min: fmt$(E.MODEL.MIN_SEED_COST) }))}</p>
+    <p class="rules"><b>${esc(t('brief.loseLabel'))}</b> ${esc(loses.join(' · '))}<br><b>${esc(t('brief.soilLabel'))}</b> ${esc(soilName(farm.soil))} — ${esc(t(`soils.${farm.soil}.desc`))}</p>
     ${isDemo() ? `<p class="rules">${esc(t('brief.demo'))}</p>` : ''}
+    ${brief.error ? `<p class="missing show" role="alert">${esc(brief.error)}</p>` : ''}
     <div class="brief-foot">
       <button class="btn btn-ghost" type="button" id="brief-cancel">${esc(t('actions.back'))}</button>
-      <button class="btn btn-primary btn-lg" type="button" id="brief-start" data-autofocus>${IC.play} ${esc(t('actions.startLevel'))}</button>
+      <button class="btn btn-primary btn-lg" type="button" id="brief-start" data-autofocus ${sel && !brief.busy ? '' : 'disabled'}>${IC.play} ${esc(t(brief.busy ? 'actions.loading' : 'actions.startLevel'))}</button>
     </div>`;
   $('brief-cancel').onclick = ()=>closeOv('ov-level');
-  $('brief-start').onclick = ()=>{ closeOv('ov-level'); startLevel(briefLevel); };
+  $('brief-start').onclick = ()=>startLevel(brief.levelId, brief.year);
+}
+function weatherRuleVars(level){
+  const w = level.weather, th = model.weather_thresholds;
+  return { share: Math.round((w.max_rain_share || w.min_rain_share || 0)*100), days: w.min_hot_days || w.min_heavy_rain_days || 0,
+    hot: th.hot_day_tmax_c, heavy: th.heavy_rain_day_mm };
+}
+const gameBody = extra => ({ level_id: game.level.id, year: game.year,
+  farm: { latitude:farm.latitude, longitude:farm.longitude, start_md:farm.start_md, end_md:farm.end_md, soil:farm.soil, demo:isDemo() }, ...extra });
+function rejectionText(e){
+  const d = e.detail || {};
+  switch(d.error){
+    case 'weather_unfit': return t('reject.weatherUnfit', { years: (d.suggestions||[]).map(y=>yearLabel(y)).join(', ') || '—' });
+    case 'year_unavailable': return t('reject.yearUnavailable', { latest:d.latest_complete_year, suggestion:d.suggestion });
+    case 'incomplete_season': return t('reject.incomplete', { years:(d.years||[]).join(', '), suggestion: d.suggestion ?? '—' });
+    case 'invalid_decision': return t('reject.invalidDecision', { list: [...(d.missing||[]).map(k=>t(`decisions.missing.${k}`)), ...(d.errors||[]).map(k=>has(`decisions.error.${k}`) ? t(`decisions.error.${k}`) : k)].join(', ') });
+    default: return t(`error.${errorKey(e)}.short`);
+  }
+}
+async function startLevel(id, year){
+  if(year===null || year===undefined) return;
+  const level = R.levelById(model, id);
+  brief = { ...brief, busy:true, error:null }; renderBrief();
+  const token = ++gameToken;
+  try{
+    game = { level, year, decisions:[], results:[] };
+    const res = await client.start(gameBody({ decisions:[] }));
+    if(token!==gameToken) return;
+    Object.assign(game, { run:res.run, season:res.season, fit:res.fit, data:res.data });
+    decision = emptyDecision();
+    phase = 'plan'; pending = null; paused = false;
+    closeAllOv(); setView(false);
+    renderGame();
+    setFieldState('planning', weatherFor(game.season));
+    show('game'); scrollTop();
+  }catch(e){
+    if(token!==gameToken) return;
+    game = null;
+    brief = { ...brief, busy:false, error: rejectionText(e) };
+    if(ovOpen('ov-level')) renderBrief();
+  }
 }
 
 /* =========================================================
    GAME
    ========================================================= */
-function startLevel(id){
-  gameToken++;
-  run = E.createRun(id, climate.data);
-  decision = emptyDecision();
-  phase = 'plan'; pending = null; paused = false;
-  closeAllOv(); setView(false);
-  renderGame();
-  setFieldState('planning', weatherFor(currentSeason()));
-  show('game'); scrollTop();
-}
-const currentSeason = () => run.seasons[Math.min(run.seasonIndex, run.seasons.length-1)];
-/** While a season report is open, panels still describe the season that was just played. */
-const shownRun = () => pending ? pending.prevRun : run;
-
 function renderGame(){
-  renderTop(); renderControls(); renderData(); renderSoil(pending ? pending.next : run); renderMeters(pending ? pending.next : run);
+  renderTop(); renderControls(); renderData(); renderSoil(); renderMeters();
   renderPlants(); renderFieldLabels();
 }
 function renderTop(){
-  const r = shownRun(), level = E.levelById(r.levelId), idx = Math.min(r.seasonIndex, r.seasons.length-1);
+  const r = game.run, level = game.level;
+  const idx = Math.min(r.season_index, r.seasons_total-1);
+  const s = game.season || game.results[game.results.length-1] && seasonByYear(game.results[game.results.length-1].year);
   $('season-name').textContent = t('game.levelTitle', { n:level.id, name:levelName(level) });
-  $('season-count').textContent = t('game.seasonCount', { n:idx+1, total:r.seasons.length, season:seasonLabel(r.seasons[idx]) });
+  $('season-count').textContent = t('game.seasonCount', { n:idx+1, total:r.seasons_total, season: s ? seasonTitle(s) : '' });
   $('season-ic').innerHTML = IC[LEVEL_ICONS[level.id-1]];
-  $('season-dots').innerHTML = r.seasons.map((_,k)=>`<i class="${k<r.seasonIndex?'done':k===r.seasonIndex?'now':''}"></i>`).join('');
+  $('season-dots').innerHTML = Array.from({ length:r.seasons_total }, (_,k)=>`<i class="${k<r.season_index?'done':k===r.season_index?'now':''}"></i>`).join('');
   $('mission-text').textContent = level.goals.map(goalText).join(' · ');
 }
-
+function optionButton(kind, id, ui, name, desc, costText, pressed, locked){
+  return `<button class="fert" type="button" data-${kind}="${id}" aria-pressed="${pressed}" ${locked?'disabled':''}>
+    <span class="fic" style="background:${ui.bg};color:#fff">${IC[ui.ic]}</span>
+    <span><b>${esc(name)}</b><small>${esc(desc)}</small></span><span class="cost">${costText}</span>
+  </button>`;
+}
 function renderControls(){
-  const r = shownRun(), s = r.seasons[Math.min(r.seasonIndex, r.seasons.length-1)];
-  const locked = phase!=='plan';
-  const prev = r.cropHistory[r.cropHistory.length-1];
-  // 1. crops
-  $('crop-grid').innerHTML = E.CROP_IDS.map(id=>{
-    const c = E.CROPS[id];
-    let tag = `<span class="tag ${c.legume?'leg':c.droughtTolerant?'tol':''}">${esc(t(`crops.${id}.tag`))}</span>`;
+  const r = game.run, locked = phase!=='plan';
+  const prev = r.history[r.history.length-1];
+  const crops = R.options(model.crops), mult = game.level.economy.cost;
+  // 1. crop
+  $('crop-grid').innerHTML = Object.keys(crops).map(id=>{
+    const c = crops[id];
+    let tag = `<span class="tag ${c.family==='legume'?'leg':c.heat_tmax_c>=36?'tol':''}">${esc(t(`crops.${id}.tag`))}</span>`;
     if(prev===id) tag = `<span class="tag warn">${esc(t('decisions.tagRepeat'))}</span>`;
-    else if(prev && E.CROPS[prev].legume && !c.legume) tag = `<span class="tag leg">${esc(t('decisions.tagLegumeCredit'))}</span>`;
+    else if(prev && crops[prev].family==='legume' && c.family!=='legume') tag = `<span class="tag leg">${esc(t('decisions.tagLegumeCredit'))}</span>`;
+    const drops = c.kc[1] >= 1.15 ? 3 : c.kc[1] >= 1.05 ? 2 : 1;
     return `<button class="crop" type="button" data-crop="${id}" aria-pressed="${decision.crop===id}" ${locked?'disabled':''}>
       ${cropIcon(id)}<b>${esc(cropName(id))}</b>
-      <span class="meta"><span class="drops" role="img" aria-label="${esc(t('decisions.waterNeed',{ n:c.drops }))}">${[1,2,3].map(k=>`<span class="${k<=c.drops?'':'off'}">${IC.dropFill}</span>`).join('')}</span>${fmt$(c.seed)}</span>
+      <span class="meta"><span class="drops" role="img" aria-label="${esc(t('decisions.waterNeed',{ n:drops }))}">${[1,2,3].map(k=>`<span class="${k<=drops?'':'off'}">${IC.dropFill}</span>`).join('')}</span>${fmt$(c.seed_cost*mult)}</span>
       ${tag}
     </button>`;
   }).join('');
-  const c = decision.crop && E.CROPS[decision.crop];
-  $('crop-note').textContent = c ? t('decisions.likes', { min:c.temp[0], max:c.temp[1] }) : prev ? t('decisions.lastCrop', { crop:cropName(prev) }) : '';
-  // 2. irrigation
-  const method = decision.method || 'sprinkler';
-  $('irr-seg').innerHTML = E.IRRIGATION.map((o,k)=>{
-    const need = E.reserveNeed({ crop:'wheat', irrigation:k, method, fertilizer:'none' });
-    const dis = locked || need > r.reserve;
-    return `<button type="button" data-irr="${k}" aria-pressed="${decision.irrigation===k}" ${dis?'disabled':''}><span class="drops">${k===0?IC.none:Array.from({ length:k },()=>IC.dropFill).join('')}</span>${esc(t(`irrigation.${o.id}`))}</button>`;
+  const c = decision.crop && crops[decision.crop];
+  $('crop-note').textContent = c ? t('decisions.cropNote', { heat:c.heat_tmax_c, gdd:num(c.gdd_need) }) : prev ? t('decisions.lastCrop', { crop:cropName(prev) }) : '';
+  // 2. irrigation system
+  const methods = R.options(model.irrigation_methods);
+  $('irr-method').innerHTML = Object.keys(methods).map(m=>{
+    const x = methods[m];
+    return `<button type="button" data-method="${m}" aria-pressed="${decision.method===m}" ${locked?'disabled':''}>${IC[METHOD_UI[m].ic]} ${esc(t(`methods.${m}.name`))}
+      <small>${esc(t('methods.meta', { eff:Math.round(x.efficiency*100), cost:fmt$(x.setup_cost*mult) }))}</small></button>`;
   }).join('');
-  $('irr-method').innerHTML = Object.keys(E.METHODS).map(m=>{
-    const need = E.reserveNeed({ crop:'wheat', irrigation:decision.irrigation || 0, method:m, fertilizer:'none' });
-    const dis = locked || !decision.irrigation || need > r.reserve;
-    return `<button type="button" data-method="${m}" aria-pressed="${method===m}" ${dis?'disabled':''}>${esc(t(`methods.${m}.name`))}<small>${esc(t(`methods.${m}.desc`, { cost:fmt$(E.METHODS.drip.extraCost) }))}</small></button>`;
+  // 3. water use
+  const intens = R.options(model.irrigation_intensity);
+  $('irr-seg').innerHTML = Object.keys(intens).map((k,i)=>{
+    const dis = locked || (k!=='off' && r.reserve_mm<=0);
+    return `<button type="button" data-intensity="${k}" aria-pressed="${decision.intensity===k}" ${dis?'disabled':''}><span class="drops">${i===0?IC.none:Array.from({ length:i },()=>IC.dropFill).join('')}</span>${esc(t(`intensity.${k}.name`))}</button>`;
   }).join('');
-  $('reserve-note').textContent = t('decisions.reserve', { pct:r.reserve });
-  if(decision.irrigation===null) $('irr-hint').innerHTML = esc(t('irrigation.hintChoose'));
-  else if(decision.irrigation===0) $('irr-hint').innerHTML = t('irrigation.hintNone');
-  else {
-    const o = E.IRRIGATION[decision.irrigation];
-    const loss = method==='drip' ? E.METHODS.drip.loss : E.sprinklerLoss(s);
-    $('irr-hint').innerHTML = t('irrigation.hintAdds', { mm:num(o.mm*(1-loss)), pts:E.reserveNeed(decision), loss:num(loss*100) });
-  }
-  // 3. fertilizer, 4. soil protection
-  $('fert-list').innerHTML = Object.entries(E.FERTILIZERS).map(([id,f])=>optionButton('fert', id, FERT_UI[id], t(`fertilizers.${id}.name`), t(`fertilizers.${id}.desc`), f.cost, decision.fertilizer===id, locked)).join('');
-  $('prot-list').innerHTML = Object.entries(E.PROTECTION).map(([id,p])=>optionButton('prot', id, PROT_UI[id], t(`protection.${id}.name`), t(`protection.${id}.desc`), p.cost, decision.protection===id, locked)).join('');
-  // summary
-  const rows = [];
-  if(c) rows.push([t('plan.seeds', { crop:cropName(decision.crop) }), c.seed]);
-  if(decision.irrigation) rows.push([t('plan.irrigation', { level:irrName(decision.irrigation) }), E.IRRIGATION[decision.irrigation].cost + (method==='drip' ? E.METHODS.drip.extraCost : 0)]);
-  if(decision.fertilizer && decision.fertilizer!=='none') rows.push([t('plan.fertilizer', { name:t(`fertilizers.${decision.fertilizer}.name`) }), E.FERTILIZERS[decision.fertilizer].cost]);
-  if(decision.protection!=='none') rows.push([t('plan.protection', { name:t(`protection.${decision.protection}.name`) }), E.PROTECTION[decision.protection].cost]);
-  const cost = E.planCost(decision);
+  $('reserve-note').textContent = t('decisions.reserve', { mm:num(r.reserve_mm) });
+  const it = decision.intensity && intens[decision.intensity];
+  if(!decision.intensity) $('irr-hint').innerHTML = esc(t('irrigation.hintChoose'));
+  else if(decision.intensity==='off') $('irr-hint').innerHTML = esc(t('irrigation.hintNone'));
+  else $('irr-hint').innerHTML = esc(t(`intensity.${decision.intensity}.desc`, { cap:num(Math.min(it.cap_mm, r.reserve_mm)) }))
+    + (decision.method ? ' ' + esc(t(`methods.${decision.method}.desc`)) : '');
+  // 4. soil care
+  const care = R.options(model.soil_care);
+  $('care-list').innerHTML = Object.keys(care).map(id=>optionButton('care', id, CARE_UI[id], t(`care.${id}.name`), t(`care.${id}.desc`),
+    care[id].cost ? fmt$(care[id].cost*mult) : esc(t('care.free')), decision.care===id, locked)).join('');
+  // plan summary (maximum cost: water is reserved at its seasonal limit)
+  const cost = R.planCost(model, r, decision);
+  const rows = [[t('plan.seeds'), cost.seeds], [t('plan.fixed'), cost.fixed]];
+  if(cost.care) rows.push([t('plan.care'), cost.care]);
+  if(cost.irrigation_setup) rows.push([t('plan.setup'), cost.irrigation_setup]);
+  if(cost.water_max) rows.push([t('plan.water', { mm:num(cost.water_max_mm) }), cost.water_max]);
   $('plan-sum').innerHTML = rows.map(([l,v])=>`<div><span>${esc(l)}</span><span>${fmt$(v)}</span></div>`).join('')
-    + `<div class="total"><span>${esc(t('plan.total'))}</span><span>${fmt$(cost)}</span></div>`
-    + `<div><span>${esc(t('plan.budgetLeft'))}</span><span>${fmt$(r.budget - cost)}</span></div>`;
-  // validation
-  const check = E.validateDecision(r, decision);
+    + `<div class="total"><span>${esc(t('plan.total'))}</span><span>${fmt$(cost.total_max)}</span></div>`
+    + `<div><span>${esc(t('plan.budgetLeft'))}</span><span>${fmt$(r.budget - cost.total_max)}</span></div>`;
+  const check = R.validateDecision(model, r, decision);
   const msgs = [];
   if(check.missing.length) msgs.push(t('decisions.missing', { list: check.missing.map(k=>t(`decisions.missing.${k}`)).join(', ') }));
-  if(check.errors.includes('budget')) msgs.push(t('plan.noBudget'));
-  if(check.errors.includes('reserve')) msgs.push(t('plan.noReserve'));
+  check.errors.forEach(k=>msgs.push(has(`decisions.error.${k}`) ? t(`decisions.error.${k}`) : k));
+  if(game.error) msgs.push(game.error);
   $('missing').textContent = msgs.join(' ');
   $('missing').classList.toggle('show', !locked && msgs.length>0);
   $('btn-confirm').disabled = locked || !check.ok;
-  $('btn-confirm').innerHTML = IC.check + esc(phase==='plan' ? t('actions.confirmGrow', { season:seasonLabel(s) }) : phase==='done' ? t('actions.levelOver') : t('actions.inProgress'));
-}
-function optionButton(kind, id, ui, name, desc, cost, pressed, locked){
-  return `<button class="fert" type="button" data-${kind}="${id}" aria-pressed="${pressed}" ${locked?'disabled':''}>
-    <span class="fic" style="background:${ui.bg};color:#fff">${IC[ui.ic]}</span>
-    <span><b>${esc(name)}</b><small>${esc(desc)}</small></span><span class="cost">${cost?fmt$(cost):esc(t('fertilizers.free'))}</span>
-  </button>`;
+  const s = game.season;
+  $('btn-confirm').innerHTML = IC.check + esc(phase==='plan' ? t('actions.confirmGrow', { season: s ? yearLabel(s.year, s.start, s.end) : '' })
+    : phase==='done' ? t('actions.levelOver') : t('actions.inProgress'));
 }
 
-function gauge(val,min,max,avg,grad,labels){
+function gauge(val, min, max, avg, grad, labels){
   const p = v=>Math.max(0, Math.min(100, (v-min)/(max-min)*100));
-  return `<div class="gauge" style="background:${grad}"><span class="avg" style="left:${p(avg)}%" title="${esc(t('data.average10'))}"></span><span class="mk" style="left:${p(val)}%"></span></div>
+  return `<div class="gauge" style="background:${grad}">${avg===null||avg===undefined ? '' : `<span class="avg" style="left:${p(avg)}%" title="${esc(t('data.reference'))}"></span>`}<span class="mk" style="left:${p(val)}%"></span></div>
     <div class="gauge-labels">${labels.map(l=>`<span>${esc(l)}</span>`).join('')}</div>`;
 }
-function renderData(){
-  const r = shownRun(), s = r.seasons[Math.min(r.seasonIndex, r.seasons.length-1)], b = r.baseline;
-  const picked = r.pickedAs[Math.min(r.seasonIndex, r.seasons.length-1)];
-  $('nasa-sub').textContent = periodLabel(s);
-  $('nasa-status').innerHTML = statusBadge();
-  const events = E.seasonEvents(s, b, r.reserve);
-  $('events').innerHTML = events.length
-    ? events.map(e=>`<span class="ev ${e.type}">${IC[{ drought:'heat', heat:'thermo', downpour:'rain', waterDeficit:'drop' }[e.type]]}${esc(t(`events.${e.type}`))} · ${esc(t(`severity.${e.severity}`))}</span>`).join('')
-    : `<span class="ev calm">${IC.check}${esc(t('events.none'))}</span>`;
-  const chip = (cls,key)=>[cls, t('data.chip.'+key)];
-  const dT = s.temperature_c - b.temperature_c;
-  const rP = b.rainfall_mm ? Math.round((s.rainfall_mm - b.rainfall_mm)/b.rainfall_mm*100) : 0;
-  const dH = s.humidity_percent - b.humidity_percent, dW = s.wind_speed_m_s - b.wind_speed_m_s, dS = s.solar_radiation_mj_m2_day - b.solar_radiation_mj_m2_day;
-  const tChip = dT>1?chip('hot','hot'):dT>0.5?chip('warm','warm'):dT<-1?chip('cool','cool'):chip('ok','normal');
-  const rChip = rP<-30?chip('dry','veryDry'):rP<-10?chip('warm','belowNormal'):rP>30?chip('wet','wet'):rP>10?chip('wet','aboveNormal'):chip('ok','normal');
-  const hChip = s.humidity_percent<40?chip('dry','dryAir'):s.humidity_percent>70?chip('wet','humid'):chip('ok','normal');
-  const wChip = s.wind_speed_m_s>4?chip('warm','windy'):chip('ok','calm');
-  const sChip = s.solar_radiation_mj_m2_day<15?chip('cool','cloudy'):s.solar_radiation_mj_m2_day>24?chip('warm','sunny'):chip('ok','normal');
-  const item=(ic,bg,title,ch,val,unit,anom,g,code,src)=>`<div class="datum">
-      <div class="datum-top"><span class="dic" style="background:${bg}">${IC[ic]}</span><h3>${esc(title)}</h3><span class="chip ${ch[0]}">${esc(ch[1])}</span></div>
-      <div class="datum-val"><b>${val}</b><span>${esc(unit)}</span><em>${esc(anom)}</em></div>${g}<div class="src">${code} · ${esc(src)}</div></div>`;
-  const rainMax = Math.max(200, Math.ceil(b.rainfall_mm*2/100)*100);
-  $('data-list').innerHTML =
-    item('thermo','#D0632A',t('data.temperature'),tChip,dec1(s.temperature_c),'°C',t('data.vsNormal',{ value:`${signed(+dT.toFixed(1), dec1)} °C` }),
-      gauge(s.temperature_c,0,40,b.temperature_c,'linear-gradient(90deg,#7DB6F0,#9CD58A 45%,#F3C04E 70%,#E0602F)',['0°','20°','40 °C']),'T2M',t('data.src.temperature'))+
-    item('rain','#1E6FD9',t('data.rainfall'),rChip,num(s.rainfall_mm),t('data.unit.rain'),t('data.vsNormal',{ value:`${signed(rP)}%` }),
-      gauge(s.rainfall_mm,0,rainMax,b.rainfall_mm,'linear-gradient(90deg,#E9D6B4,#9CC6EE 55%,#1E6FD9)',['0',num(rainMax/2),`${num(rainMax)} mm`]),'PRECTOTCORR',t('data.src.rainfall'))+
-    item('humid','#2A8FA8',t('data.humidity'),hChip,num(s.humidity_percent),'%',t('data.vsNormal',{ value:`${signed(Math.round(dH))} pp` }),
-      gauge(s.humidity_percent,0,100,b.humidity_percent,'linear-gradient(90deg,#E9C98E,#9CD58A 50%,#6FB4E8)',['0','50','100 %']),'RH2M',t('data.src.humidity'))+
-    item('wind','#5A7D8C',t('data.wind'),wChip,dec1(s.wind_speed_m_s),t('data.unit.wind'),t('data.vsNormal',{ value:signed(+dW.toFixed(1), dec1) }),
-      gauge(s.wind_speed_m_s,0,8,b.wind_speed_m_s,'linear-gradient(90deg,#CFE6D2,#9CC6EE 50%,#5A7D8C)',['0','4','8 m/s']),'WS2M',t('data.src.wind'))+
-    item('sun','#E09A1B',t('data.solar'),sChip,dec1(s.solar_radiation_mj_m2_day),t('data.unit.solar'),t('data.vsNormal',{ value:signed(+dS.toFixed(1), dec1) }),
-      gauge(s.solar_radiation_mj_m2_day,5,30,b.solar_radiation_mj_m2_day,'linear-gradient(90deg,#8E9CA8,#F3E08E 60%,#F9B233)',['5','17','30']),'ALLSKY_SFC_SW_DWN',t('data.src.solar'));
-  const df = E.demandFactor(s);
-  const lines = [t('insight.picked', { what:t(`pick.${picked}`) })];
-  lines.push(t(df.factor>=1 ? 'insight.demandUp' : 'insight.demandDown', { pct:num(Math.abs(Math.round((df.factor-1)*100))) }));
-  events.forEach(e=>lines.push(t(`insight.${e.type}`)));
-  if(!events.length) lines.push(t('insight.calm'));
-  $('insight').innerHTML = `<b>${IC.bulb} ${esc(t('insight.title'))}</b>${lines.map(esc).join(' ')}`;
-  $('obs').innerHTML = isDemo() ? esc(t('obs.demo'))
-    : `<strong>${esc(t('obs.place'))}</strong> ${esc(placeLabel(place))} · ${coordsLabel(place)}<br><strong>${esc(t('obs.period'))}</strong> ${esc(periodLabel(s))}<br>${esc(t('obs.note'))}`;
+/** The season shown in the NASA panel: the one being planned, or the one just played while its report is open. */
+function shownSeason(){
+  if(pending && pending.outcome) return seasonByYear(pending.outcome.year);
+  return game.season || (game.results.length ? seasonByYear(game.results[game.results.length-1].year) : null);
 }
-function renderSoil(r){
-  const soil = r.soil, fert = E.fertility(soil);
-  const row = (label, v, invert) => {
-    const good = invert ? 100-v : v;
-    return `<div class="srow"><span>${esc(label)}</span><div class="bar"><i style="width:${v}%;background:${barColor(good)}"></i></div><span>${num(v)}</span></div>`;
-  };
-  const hist = r.cropHistory.slice(-4);
-  $('soil-card').innerHTML = `<h3>${IC.soil} ${esc(t('soil.title'))}</h3>
-    ${row(t('soil.fertility'), fert)}${row(t('soil.moisture'), soil.moisture)}${row(t('soil.n'), soil.n)}${row(t('soil.om'), soil.om)}${row(t('soil.erosion'), soil.erosion, true)}
+function renderData(){
+  const s = shownSeason();
+  if(!s) return;
+  const f = s.features, ref = s.reference, th = model.weather_thresholds;
+  $('nasa-sub').textContent = `${seasonTitle(s)} · ${periodLabel(s)}`;
+  $('nasa-status').innerHTML = statusBadge(game.data || archive.data);
+  $('events').innerHTML = anomalyChips(s);
+  const refMean = k => ref[k] ? ref[k].mean : null;
+  const vsRef = (v, k, unit) => refMean(k)===null ? t('data.noReference') : t('data.vsReference', { value: `${num(refMean(k), k==='t_mean_c'?1:0)}${unit}` });
+  const item = (ic,bg,title,val,unit,note,g,code) => `<div class="datum">
+      <div class="datum-top"><span class="dic" style="background:${bg}">${IC[ic]}</span><h3>${esc(title)}</h3></div>
+      <div class="datum-val"><b>${val}</b><span>${esc(unit)}</span><em>${esc(note)}</em></div>${g||''}<div class="src">${esc(code)}</div></div>`;
+  const rainMax = Math.max(100, Math.ceil(Math.max(f.rain_total_mm, (refMean('rain_total_mm')||0)*1.6)/100)*100);
+  const hotMax = Math.max(20, f.days || s.days);
+  let html =
+    item('rain','#1E6FD9',t('data.rain'),num(f.rain_total_mm),'mm',vsRef(f.rain_total_mm,'rain_total_mm',' mm'),
+      gauge(f.rain_total_mm,0,rainMax,refMean('rain_total_mm'),'linear-gradient(90deg,#E9D6B4,#9CC6EE 55%,#1E6FD9)',['0',num(rainMax/2),`${num(rainMax)} mm`]),
+      t('data.src.rain', { heavy:th.heavy_rain_day_mm }))+
+    item('thermo','#D0632A',t('data.hotDays', { t:th.hot_day_tmax_c }),num(f.hot_days),t('data.unit.days'),vsRef(f.hot_days,'hot_days',''),
+      gauge(f.hot_days,0,hotMax,refMean('hot_days'),'linear-gradient(90deg,#9CD58A,#F3C04E 50%,#E0602F)',['0',num(hotMax/2),num(hotMax)]),
+      t('data.src.hot', { extreme:th.extreme_heat_tmax_c, n:f.extreme_heat_days }))+
+    item('heat','#E09A1B',t('data.dry'),num(f.longest_dry_spell_days),t('data.unit.days'),vsRef(f.longest_dry_spell_days,'longest_dry_spell_days',''),'',
+      t('data.src.dry', { mm:th.dry_day_precip_mm }))+
+    item('rain','#2A6FB0',t('data.heavy'),num(f.heavy_rain_days),t('data.unit.days'),vsRef(f.heavy_rain_days,'heavy_rain_days',''),'',
+      t('data.src.heavy', { mm:th.heavy_rain_day_mm }))+
+    item('thermo','#B5412F',t('data.temp'),dec1(f.t_mean_c),'°C',vsRef(f.t_mean_c,'t_mean_c',' °C'),'',
+      t('data.src.temp', { max:dec1(f.tmax_mean_c), min:dec1(f.tmin_mean_c), frost:f.frost_days }));
+  html += `<div class="datum mini">${[
+    ['humid', t('data.rh'), f.rh_mean_pct===null ? t('data.unavailable') : `${num(f.rh_mean_pct)} %`, 'RH2M'],
+    ['wind', t('data.wind'), f.ws_mean_m_s===null ? t('data.unavailable') : `${dec1(f.ws_mean_m_s)} m/s · ${t('data.windyDays', { n:f.windy_days })}`, 'WS2M'],
+    ['sun', t('data.solar'), f.solar_mean_mj_m2_day===null ? t('data.unavailable') : `${dec1(f.solar_mean_mj_m2_day)} MJ/m²/day`, 'ALLSKY_SFC_SW_DWN'],
+    ['drop', t('data.et0'), `${num(f.et0_total_mm)} mm`, t('data.et0Source', { method: s.et0_method })],
+  ].map(([ic,l,v,code])=>`<div class="mrow">${IC[ic]}<span>${esc(l)}</span><b>${esc(v)}</b><small>${esc(code)}</small></div>`).join('')}</div>`;
+  $('data-list').innerHTML = html;
+  const gapCount = Object.values(s.gaps).reduce((a,g)=>a+g.length, 0);
+  $('insight').innerHTML = `<b>${IC.bulb} ${esc(t('insight.title'))}</b>${esc(t('insight.thresholds'))}`
+    + (gapCount ? `<br>${esc(t('insight.gaps', { n:gapCount, params:Object.keys(s.gaps).join(', ') }))}` : '')
+    + (s.unavailable_parameters.length ? `<br>${esc(t('insight.unavailable', { params:s.unavailable_parameters.join(', '), method:s.et0_method }))}` : '');
+  $('obs').innerHTML = isDemo() ? esc(t('prov.demo')) : provenanceHtml(game.data || archive.data, true);
+}
+function renderSoil(){
+  const r = pending && pending.run ? pending.run : game.run, soil = r.soil, fert = R.fertility(model, soil);
+  const row = (label, pct, text, invert) => `<div class="srow"><span>${esc(label)}</span><div class="bar"><i style="width:${Math.max(0,Math.min(100,pct))}%;background:${barColor(invert ? 100-pct : pct)}"></i></div><span>${esc(text)}</span></div>`;
+  const hist = r.history.slice(-4);
+  const taw = model.soils[farm.soil].awc_mm_per_m * model.farm.root_zone_m;
+  $('soil-card').innerHTML = `<h3>${IC.soil} ${esc(t('soil.title', { soil:soilName(farm.soil) }))}</h3>
+    ${row(t('soil.fertility'), fert, num(fert))}
+    ${row(t('soil.moisture'), soil.moisture, `${num(soil.moisture)}%`)}
+    ${row(t('soil.n'), soil.n/1.2, num(soil.n))}
+    ${row(t('soil.om'), (soil.om-0.5)/3*100, `${dec1(soil.om)}%`)}
+    ${row(t('soil.erosion'), soil.erosion, num(soil.erosion), true)}
+    <p class="note-sm">${esc(t('soil.note', { taw:num(taw) }))}</p>
     <div class="history">${esc(t('soil.history'))} ${hist.length ? hist.map(id=>`<span>${esc(cropName(id))}</span>`).join('→') : esc(t('soil.noHistory'))}</div>`;
 }
 
 const METERS = [
-  { key:'yield',     ic:'leaf',  bg:'#3E9B4F', unit:'%' },
-  { key:'fertility', ic:'soil',  bg:'#8C5E3C', unit:'/100' },
-  { key:'moisture',  ic:'humid', bg:'#2A8FA8', unit:'%' },
-  { key:'water',     ic:'drop',  bg:'#1E6FD9', unit:'%' },
-  { key:'budget',    ic:'coin',  bg:'#C9971B', unit:'' },
+  { key:'yield',     ic:'leaf',  bg:'#3E9B4F' },
+  { key:'fertility', ic:'soil',  bg:'#8C5E3C' },
+  { key:'moisture',  ic:'humid', bg:'#2A8FA8' },
+  { key:'water',     ic:'drop',  bg:'#1E6FD9' },
+  { key:'budget',    ic:'coin',  bg:'#C9971B' },
 ];
 function barColor(v){ return v>=70?'var(--green-500)':v>=45?'var(--amber-500)':'var(--red-600)'; }
-function meterValues(r){
-  const last = r.results[r.results.length-1];
-  return { yield: last ? last.yield : null, fertility:E.fertility(r.soil), moisture:r.soil.moisture, water:r.reserve, budget:r.budget };
+function meterValues(run, results){
+  const last = results[results.length-1];
+  return { yield: last ? last.yield_pct : null, fertility:R.fertility(model, run.soil), moisture:run.soil.moisture, water:run.reserve_mm, budget:run.budget };
 }
-function renderMeters(r, deltas){
-  const vals = meterValues(r);
+function renderMeters(deltas){
+  const r = pending && pending.run ? pending.run : game.run;
+  const results = pending && pending.results ? pending.results : game.results;
+  const vals = meterValues(r, results), cap = model.farm.reserve_cap_mm;
   $('meters').innerHTML = METERS.map(M=>{
     const v = vals[M.key];
     const shown = v===null ? '—' : M.key==='budget' ? fmt$(v) : num(v);
-    const pct = M.key==='budget' ? Math.max(0, Math.min(100, v/12000*100)) : (v ?? 0);
-    const col = M.key==='budget' ? 'var(--amber-500)' : barColor(v ?? 0);
+    const unit = { yield:'%', fertility:'/100', moisture:'%', water:' mm', budget:'' }[M.key];
+    const pct = M.key==='budget' ? Math.max(0, Math.min(100, v/15000*100)) : M.key==='water' ? v/cap*100 : (v ?? 0);
+    const col = M.key==='budget' ? 'var(--amber-500)' : M.key==='water' ? 'var(--nasa-500)' : barColor(v ?? 0);
     const label = t(`meters.${M.key}`);
     return `<div class="meter" data-k="${M.key}">
       <div class="mic" style="background:${M.bg}">${IC[M.ic]}</div>
       <div class="meter-body"><small title="${esc(label)}">${esc(label)}</small>
-        <div class="val"><b>${shown}</b>${v!==null && M.unit ? `<span>${M.unit}</span>` : ''}</div>
+        <div class="val"><b>${shown}</b>${v!==null && unit ? `<span>${unit}</span>` : ''}</div>
         <div class="bar"><i style="width:${pct}%;background:${col}"></i></div></div>
       <span class="delta"></span></div>`;
   }).join('');
   if(deltas) Object.entries(deltas).forEach(([k,d])=>{
     if(!d) return;
     const el = document.querySelector(`.meter[data-k="${k}"] .delta`); if(!el) return;
-    el.textContent = k==='budget' ? (d>0?'+':'')+fmt$(d) : signed(d);
+    el.textContent = k==='budget' ? (d>0?'+':'')+fmt$(d) : signed(Math.round(d));
     el.className = 'delta '+(d>0?'up':'down');
     requestAnimationFrame(()=>el.classList.add('show'));
     setTimeout(()=>el.classList.remove('show'), 3200);
   });
-  setTank(r.reserve);
+  setTank(r.reserve_mm / cap * 100);
 }
 
 function weatherFor(s, outcome){
-  const ev = E.seasonEvents(s, (pending ? pending.prevRun : run).baseline).map(e=>e.type);
-  if((outcome && outcome.state==='overwater') || ev.includes('downpour')) return 'rain';
-  if((outcome && (outcome.state==='drought' || outcome.state==='heatstress')) || ev.includes('heat') || ev.includes('drought')) return 'heat';
-  if(s.solar_radiation_mj_m2_day < 17) return 'cloudy';
-  return s.rainfall_mm*30/s.days > 45 ? 'showers' : 'clear';
+  if(!s) return 'clear';
+  const f = s.features, flags = s.anomaly.flags || [];
+  if((outcome && outcome.state==='overwater') || f.heavy_rain_days>=3 || flags.includes('wet')) return 'rain';
+  if((outcome && ['drought','heatstress'].includes(outcome.state)) || f.hot_days>=20 || flags.includes('hot') || flags.includes('dry')) return 'heat';
+  if(f.solar_mean_mj_m2_day!==null && f.solar_mean_mj_m2_day < 15) return 'cloudy';
+  return f.rain_total_mm / s.days > 1.5 ? 'showers' : 'clear';
 }
-function setFieldState(state, weather){
+function setFieldState(state, weather, ndvi){
   const st = $('stage');
   st.dataset.state = state;
   if(weather) st.dataset.weather = weather;
-  const S = STATES[state];
+  const S = STATES[state] || STATES.healthy;
   const ic = $('cond-ic'); ic.style.background = S.color; ic.innerHTML = IC[S.ic];
   renderFieldLabels();
-  const last = run && run.results.length ? run.results[run.results.length-1] : pending && pending.outcome;
-  const ndvi = state==='planning' ? 0.2 : state==='failed' ? 0.18 : last ? 0.18 + 0.6*last.yield/100 : 0.6;
-  paintNDVI(ndvi);
+  paintNDVI(ndvi ?? (state==='planning' ? 0.2 : state==='failed' ? 0.18 : 0.6));
 }
 function renderFieldLabels(){
   const st = $('stage');
@@ -776,192 +957,288 @@ function setView(sat){
 
 /* ---------- Playing a season ---------- */
 async function confirmDecision(){
-  if(phase!=='plan' || !run) return;
-  if(!E.validateDecision(run, decision).ok){ renderControls(); return; }
+  if(phase!=='plan' || !game) return;
+  if(!R.validateDecision(model, game.run, decision).ok){ renderControls(); return; }
   const token = gameToken;
-  const prevRun = run;
-  const { run: next, outcome } = E.playSeason(run, decision);
-  pending = { prevRun, next, outcome, best:undefined };
-  phase = 'growing';
-  renderControls(); renderPlants(); setView(false);
-  setFieldState(outcome.state, weatherFor(outcome.season, outcome));
-  paintNDVI(0.18 + 0.6*outcome.yield/100);
-  await wait(600);
+  const played = { ...decision };
+  phase = 'growing'; game.error = null;
+  renderControls();
+  let res;
+  try{
+    res = await client.turn(gameBody({ decisions:[...game.decisions, played] }));
+  }catch(e){
+    if(token!==gameToken) return;
+    phase = 'plan';
+    game.error = e.kind==='rejected' ? rejectionText(e) : t('toast.turnFailed', { reason:t(`error.${errorKey(e)}.short`) });
+    renderControls();
+    toast(IC.alert + esc(game.error), 6000);
+    return;
+  }
   if(token!==gameToken) return;
-  const before = meterValues(prevRun), after = meterValues(next);
+  const before = meterValues(game.run, game.results);
+  pending = res;
+  await animateSeason(token, res.outcome);
+  if(token!==gameToken) return;
+  const after = meterValues(res.run, res.results);
   const deltas = {};
-  METERS.forEach(M=>{ if(after[M.key]!==null) deltas[M.key] = after[M.key] - (before[M.key] ?? 0); });
-  if(before.yield===null) deltas.yield = 0;
-  renderMeters(next, deltas); renderSoil(next);
-  await wait(1100);
+  METERS.forEach(M=>{ if(after[M.key]!==null) deltas[M.key] = after[M.key] - (before[M.key] ?? after[M.key]); });
+  renderMeters(deltas); renderSoil();
+  await wait(700);
   if(token!==gameToken) return;
   phase = 'report';
   renderReport();
   openOv('ov-report');
 }
-function bestFor(p){
-  if(p.best===undefined) p.best = E.bestDecision(p.prevRun);
-  return p.best;
+/** Walks through the season's days (from the server's daily trace); the clock stops while paused. */
+async function animateSeason(token, o){
+  const s = seasonByYear(o.year);
+  const days = o.trace.moisture_pct.length, frames = 24;
+  const bar = $('grow-bar');
+  bar.hidden = false;
+  renderPlants(); setView(false);
+  setFieldState('growing', weatherFor(s, o), 0.3);
+  for(let k=1; k<=frames; k++){
+    await wait(110);
+    if(token!==gameToken){ bar.hidden = true; return; }
+    const i = Math.min(days-1, Math.round(k/frames*(days-1)));
+    const d = new Date(s.start+'T00:00:00'); d.setDate(d.getDate()+i);
+    bar.querySelector('span').textContent = t('grow.day', { date: fmtDate(d.toISOString().slice(0,10), false), m: o.trace.moisture_pct[i] });
+    bar.querySelector('i').style.width = `${k/frames*100}%`;
+    if(k===Math.round(frames*0.6)) setFieldState(o.state, weatherFor(s, o), 0.18 + 0.6*o.yield_pct/100);
+  }
+  await wait(250);
+  bar.hidden = true;
 }
-function sameOrBetter(o, best){
-  if(!best) return true;
-  if(JSON.stringify(E.normalizeDecision(o.decision))===JSON.stringify(E.normalizeDecision(best.decision))) return true;
-  return best.outcome.yield <= o.yield && best.outcome.economics.profit <= o.economics.profit
-    && E.seasonWaterScore(best.outcome) <= E.seasonWaterScore(o) && best.outcome.fertilityAfter <= o.fertilityAfter;
-}
-function reasonText(r){
+function reasonVars(r){
   const v = {};
   Object.entries(r.vars || {}).forEach(([k,x])=>{
     if(k==='prev') v[k] = cropName(x);
-    else if(k==='drivers') v[k] = String(x).split(', ').filter(p=>p && p!=='—').map(p=>t(`param.${p}`)).join(', ') || t('param.none');
-    else if(k==='temp') v[k] = dec1(x);
-    else if(k==='value' && typeof x==='number' && !Number.isInteger(x)) v[k] = dec1(x);
-    else v[k] = typeof x==='number' ? num(x) : x;
+    else if(k==='soil') v[k] = soilName(x).toLocaleLowerCase(locale());
+    else if(typeof x==='number') v[k] = Number.isInteger(x) ? num(x) : dec1(x);
+    else v[k] = x;
   });
-  return t(`reason.${r.code}`, v);
+  return v;
 }
+const reasonText = r => has(`reason.${r.code}`) ? t(`reason.${r.code}`, reasonVars(r)) : r.code;
+function reasonsHtml(reasons){
+  const sorted = reasons.slice().sort((a,b)=>CATEGORY_ORDER.indexOf(a.category)-CATEGORY_ORDER.indexOf(b.category) || (b.loss||0)-(a.loss||0));
+  return `<ul class="why">${sorted.map(r=>`<li>
+    <span class="pb ${r.category}">${esc(t(`category.${r.category}`))}</span>
+    <span>${esc(reasonText(r))}</span>
+    ${r.loss ? `<span class="imp down">−${dec1(r.loss)} ${esc(t('units.pp'))}</span>` : ''}</li>`).join('')}</ul>`;
+}
+/** Daily chart: rain and irrigation bars, root-zone water line. */
+function seasonChart(o, s){
+  const W = 560, H = 150, pad = 26, n = o.trace.moisture_pct.length;
+  const rain = o.trace.rain_mm, irr = o.trace.irrigation_mm, moist = o.trace.moisture_pct;
+  const maxBar = Math.max(20, ...rain, ...irr);
+  const x = i => pad + i*(W-pad*2)/Math.max(1,n-1);
+  const bw = Math.max(1.2, (W-pad*2)/n*0.8);
+  const bars = rain.map((v,i)=>v>0 ? `<rect x="${(x(i)-bw/2).toFixed(1)}" y="${(H-pad - v/maxBar*(H-pad*2)).toFixed(1)}" width="${bw.toFixed(1)}" height="${(v/maxBar*(H-pad*2)).toFixed(1)}" class="c-rain"/>` : '').join('')
+    + irr.map((v,i)=>v>0 ? `<rect x="${(x(i)-bw/2).toFixed(1)}" y="${(H-pad - v/maxBar*(H-pad*2)).toFixed(1)}" width="${bw.toFixed(1)}" height="${(v/maxBar*(H-pad*2)).toFixed(1)}" class="c-irr"/>` : '').join('');
+  const line = moist.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${(H-pad - v/100*(H-pad*2)).toFixed(1)}`).join('');
+  const mat = o.crop.maturity_day;
+  return `<figure class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(t('chart.aria'))}">
+      <line x1="${pad}" y1="${H-pad}" x2="${W-pad}" y2="${H-pad}" class="c-axis"/>
+      ${bars}<path d="${line}" class="c-moist"/>
+      ${mat!==null && mat!==undefined ? `<line x1="${x(mat)}" y1="${pad-6}" x2="${x(mat)}" y2="${H-pad}" class="c-mat"/><text x="${x(mat)+4}" y="${pad}" class="c-lbl">${esc(t('chart.maturity'))}</text>` : ''}
+      <text x="${pad}" y="${H-8}" class="c-lbl">${esc(fmtDate(s.start, false))}</text><text x="${W-pad}" y="${H-8}" class="c-lbl" text-anchor="end">${esc(fmtDate(s.end, false))}</text>
+    </svg><figcaption><span class="lg rain"></span>${esc(t('chart.rain'))} <span class="lg irr"></span>${esc(t('chart.irrigation'))} <span class="lg moist"></span>${esc(t('chart.moisture'))}</figcaption></figure>`;
+}
+function diffChips(diff, compact){
+  const items = [
+    ['yield_pct', 'whatif.yield', v=>`${signed(v)} ${t('units.pp')}`, 1],
+    ['profit', 'whatif.profit', v=>(v>0?'+':v<0?'−':'±')+fmt$(Math.abs(v)).replace('−',''), 1],
+    ['pumped_mm', 'whatif.pumped', v=>`${signed(v)} mm`, -1],
+    ['useful_mm', 'whatif.useful', v=>`${signed(v)} mm`, 1],
+    ['fertility_after', 'whatif.fertility', v=>signed(v), 1],
+    ['erosion_event', 'whatif.erosion', v=>signed(v, dec1), -1],
+    ['n_leached', 'whatif.leached', v=>`${signed(v, dec1)} kg`, -1],
+  ];
+  return `<div class="deltas">${items.filter(([k])=>!compact || Math.abs(diff[k])>=0.5).map(([k,l,f,dir])=>{
+    const v = diff[k]; const good = v===0 ? null : v*dir>0;
+    return `<span class="dchip">${esc(t(l))} <span class="n ${good===null?'':good?'up':'down'}">${esc(f(Math.round(v*10)/10))}</span></span>`;
+  }).join('')}</div>`;
+}
+const changeText = ch => t('whatif.change', { field:t(`decisions.field.${ch.field}`), from:decisionPart(ch.field, ch.from), to:decisionPart(ch.field, ch.to) });
 function renderReport(){
-  const { prevRun, next, outcome:o } = pending;
-  const best = bestFor(pending);
-  const S = STATES[o.state], level = E.levelById(prevRun.levelId), s = o.season;
-  const idx = prevRun.seasonIndex;
-  const dSoil = k => o.soilAfter[k] - o.soilBefore[k];
-  const chip = (ic, label, d, goodUp=true, f=signed) => `<span class="dchip">${IC[ic]} ${esc(label)} <span class="n ${(d>=0)===goodUp?'up':'down'}">${d===0?'±0':f(d)}</span></span>`;
-  const events = E.seasonEvents(s, prevRun.baseline, prevRun.reserve);
-  const same = sameOrBetter(o, best);
-  const btnLabel = next.failed ? t('actions.seeResult') : next.finished ? t('actions.finishLevel') : t('actions.nextSeason');
+  const res = pending, o = res.outcome, s = seasonByYear(o.year);
+  const S = STATES[o.state] || STATES.healthy, level = game.level;
+  const idx = o.season_index;
+  const dSoil = k => o.soil_end[k] - o.soil_before[k];
+  const chip = (ic, label, d, goodUp=true, f=signed) => `<span class="dchip">${IC[ic]} ${esc(label)} <span class="n ${d===0?'':(d>0)===goodUp?'up':'down'}">${d===0?'±0':f(d)}</span></span>`;
+  const btnLabel = res.run.failed ? t('actions.seeResult') : res.run.finished ? t('actions.finishLevel') : t('actions.nextSeason');
+  const f = s.features;
   $('report').innerHTML = `
     <div class="report-head">
       <div class="ric" style="background:${S.color}">${IC[S.ic]}</div>
-      <div><div class="eyebrow">${esc(t('report.eyebrow', { n:level.id, season:idx+1, total:prevRun.seasons.length, year:seasonLabel(s) }))}</div><h2 id="rep-title">${esc(t(`states.${o.state}`))}</h2></div>
-      <div class="field-ndvi"><small>${esc(t('report.yield'))}</small><b>${num(o.yield)}%</b></div>
+      <div><div class="eyebrow">${esc(t('report.eyebrow', { n:level.id, season:idx+1, total:res.run.seasons_total, year:seasonTitle(s) }))}</div><h2 id="rep-title">${esc(t(`states.${o.state}`))}</h2></div>
+      <div class="field-ndvi"><small>${esc(t('report.yield'))}</small><b>${num(o.yield_pct)}%</b><small>${esc(t('report.harvest', { t:dec1(o.harvest_t) }))}</small></div>
     </div>
     <div class="report-body">
+      <p class="note-sm">${esc(periodLabel(s))} · ${statusBadge(res.data)} · ${esc(t('report.modelNote'))}</p>
       <div class="deltas">
         <span class="dchip">${IC.coin} ${esc(t('report.profit'))} <span class="n ${o.economics.profit>=0?'up':'down'}">${o.economics.profit>=0?'+':''}${fmt$(o.economics.profit)}</span></span>
-        ${chip('drop', t('meters.water'), o.water.reserveAfter - o.water.reserveBefore)}
-        ${chip('soil', t('meters.fertility'), o.fertilityAfter - o.fertilityBefore)}
-        ${chip('leaf', t('soil.n'), dSoil('n'))}
-        ${chip('compost', t('soil.om'), dSoil('om'))}
-        ${chip('alert', t('soil.erosion'), dSoil('erosion'), false)}
-        ${chip('humid', t('soil.moisture'), dSoil('moisture'))}
+        ${chip('drop', t('meters.water'), o.water.reserve_after_mm - o.water.reserve_before_mm, true, v=>`${signed(v)} mm`)}
+        ${chip('soil', t('meters.fertility'), o.fertility_after - o.fertility_before)}
+        ${chip('leaf', t('soil.n'), Math.round(dSoil('n')))}
+        ${chip('compost', t('soil.om'), Math.round(dSoil('om')*100)/100, true, v=>signed(v, dec))}
+        ${chip('alert', t('soil.erosion'), Math.round(dSoil('erosion')*10)/10, false, v=>signed(v, dec1))}
       </div>
       <div class="chain">
-        <div class="link data"><h4>${IC.satellite} ${esc(t('report.nasaData'))}</h4>${esc(t('report.dataLine', { temp:dec1(s.temperature_c), rain:num(s.rainfall_mm), rh:num(s.humidity_percent), ws:dec1(s.wind_speed_m_s), sw:dec1(s.solar_radiation_mj_m2_day) }))}
-          ${events.length ? `<br>${events.map(e=>esc(t(`events.${e.type}`))).join(', ')}` : ''}</div>
+        <div class="link data"><h4>${IC.satellite} ${esc(t('report.nasaData'))}</h4>${esc(t('report.dataLine', { rain:num(f.rain_total_mm), hot:f.hot_days, t:model.weather_thresholds.hot_day_tmax_c, dry:f.longest_dry_spell_days, heavy:f.heavy_rain_days, temp:dec1(f.t_mean_c) }))}</div>
         <div class="link dec"><h4>${IC.farmer} ${esc(t('report.decision'))}</h4>${esc(describeDecision(o.decision))}</div>
-        <div class="link res ${o.yield>=70?'':o.yield>=45?'warn':'bad'}"><h4>${IC[S.ic]} ${esc(t('report.happened'))}</h4>${esc(t('report.resultLine', { yield:num(o.yield), demand:num(o.water.demand), supply:num(o.water.supply) }))}</div>
+        <div class="link res ${o.yield_pct>=70?'':o.yield_pct>=45?'warn':'bad'}"><h4>${IC[S.ic]} ${esc(t('report.happened'))}</h4>${esc(t('report.resultLine', { use:num(o.water.crop_use_mm), demand:num(o.water.crop_demand_mm), pumped:num(o.water.pumped_mm), yield:num(o.yield_pct) }))}</div>
       </div>
-      <div><p class="section-t">${esc(t('report.why'))}</p><ul class="why">${o.reasons.slice(0,8).map(r=>`<li>
-        <span class="pb${r.param?'':' dec'}">${esc(r.param ? (r.param==='reserve' ? t('param.reserve') : r.param) : t('report.badgeFarm'))}</span>
-        <span>${esc(reasonText(r))}</span>
-        ${Math.round(r.impact) ? `<span class="imp ${r.impact>0?'up':'down'}">${signed(Math.round(r.impact))}</span>` : ''}</li>`).join('')}</ul></div>
-      <div class="note sci"><span class="nic">${IC.atom}</span><span><b>${esc(t('report.science'))}</b>${esc(t(`science.${o.science}`))}</span></div>
-      <div class="alt${same?' same':''}"><span>${same ? esc(t('report.bestSame'))
-        : `<b>${esc(t('report.bestLabel'))}</b> ${esc(describeDecision(best.decision))} — ${esc(t('report.bestNumbers', { yield:num(best.outcome.yield), profit:fmt$(best.outcome.economics.profit), water:num(E.seasonWaterScore(best.outcome)) }))}`}</span>
-        <button class="btn" type="button" id="btn-whatif">${IC.compare} ${esc(t('actions.whatIf'))}</button></div>
+      ${seasonChart(o, s)}
+      <div><p class="section-t">${esc(t('report.why'))}</p>${reasonsHtml(o.reasons)}</div>
+      <div class="whatif-auto"><p class="section-t">${IC.compare} ${esc(t('whatif.autoTitle'))}</p>
+        <p class="note-sm">${esc(t('whatif.autoNote'))}</p>
+        ${res.what_if.length ? res.what_if.map(a=>`<div class="wi-alt">
+          <div class="wi-alt-top"><span class="crit">${esc([a.criterion, ...(a.also||[])].map(c=>t(`whatif.criterion.${c}`)).join(' · '))}</span><b>${esc(changeText(a.change))}</b></div>
+          ${diffChips(a.diff, true)}
+          ${a.drivers.length ? `<p class="note-sm">${esc(t('whatif.drivers', { list:a.drivers.map(d=>t(`factor.${d}`)).join(', ') }))}</p>` : ''}
+        </div>`).join('') : `<p class="alt same"><span>${esc(t('whatif.none'))}</span></p>`}
+        <p class="note-sm">${esc(t('whatif.noBest'))}</p>
+        <button class="btn" type="button" id="btn-whatif">${IC.compare} ${esc(t('actions.whatIf'))}</button>
+      </div>
+      <p class="note-sm">${esc(t('report.money', { revenue:fmt$(o.economics.revenue), cost:fmt$(o.economics.cost), max:fmt$(o.economics.cost_max) }))}</p>
+      <details class="limits"><summary>${esc(t('report.limits'))}</summary><ul>${(res.limitations||[]).map(l=>`<li>${esc(l)}</li>`).join('')}</ul></details>
       <div class="report-foot">
-        <small>${esc(t('report.money', { revenue:fmt$(o.economics.revenue), cost:fmt$(o.economics.cost) }))}</small>
+        <small>${esc(t('report.gridNote'))}</small>
         <button class="btn btn-primary btn-lg" type="button" id="btn-next" data-autofocus>${esc(btnLabel)} ${IC.arrow}</button>
       </div>
     </div>`;
   $('btn-next').onclick = afterReport;
-  $('btn-whatif').onclick = openWhatIf;
+  $('btn-whatif').onclick = ()=>openWhatIf(idx);
 }
 function afterReport(){
   closeOv('ov-whatif'); closeOv('ov-report');
-  run = pending.next;
-  const lastDecision = pending.outcome.decision;
+  const res = pending;
+  game.decisions = [...game.decisions, res.outcome.decision];
+  Object.assign(game, { run:res.run, results:res.results, season:res.season, data:res.data });
   pending = null;
-  if(run.finished || run.failed){ finishLevel(); return; }
+  if(res.evaluation){ finishLevel(res.evaluation); return; }
   phase = 'plan';
-  decision = emptyDecision(lastDecision);
+  decision = emptyDecision(res.outcome.decision);
   renderGame();
-  setFieldState('planning', weatherFor(currentSeason()));
-  toast(t('toast.nextSeason', { n:run.seasonIndex+1, season:seasonLabel(currentSeason()) }));
+  setFieldState('planning', weatherFor(game.season));
+  toast(IC.sprout + esc(t('toast.nextSeason', { n:game.run.season_index+1, season:seasonTitle(game.season) })));
 }
 
-/* ---------- What If ---------- */
-function openWhatIf(){
-  const best = bestFor(pending);
-  whatIf = { run:pending.prevRun, player:pending.outcome.decision, alt:{ ...(best ? best.decision : pending.outcome.decision) } };
-  renderWhatIf();
-  openOv('ov-whatif');
+/* ---------- Custom What If (server replays the season with ONE change) ---------- */
+function openWhatIf(season){
+  const base = (pending ? pending.results : game.results)[season].decision;
+  const field = base.intensity==='off' ? 'intensity' : 'method';
+  whatIf = { season, field, value:null, result:null, error:null, busy:false, base };
+  whatIf.value = otherValues(field, base)[0];
+  renderWhatIf(); openOv('ov-whatif');
+  runWhatIf();
 }
-function renderWhatIf(focusId){
-  const cmp = E.compare(whatIf.run, whatIf.player, whatIf.alt);
-  const a = cmp.player.outcome, b = cmp.alternative.outcome;
-  const sel = (id, label, options, value) => `<label>${esc(label)}<select id="${id}">${options.map(([v,l])=>`<option value="${v}"${String(v)===String(value)?' selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
-  const alt = whatIf.alt;
-  const rows = [
-    [t('whatif.yield'), a.yield, b.yield, v=>`${num(v)}%`, 1],
-    [t('whatif.profit'), a.economics.profit, b.economics.profit, fmt$, 1],
-    [t('whatif.irrigation'), a.water.irrigationMm, b.water.irrigationMm, v=>`${num(v)} mm`, 0],
-    [t('whatif.reserveUsed'), a.water.reserveUsed, b.water.reserveUsed, v=>num(v), -1],
-    [t('whatif.waterScore'), cmp.player.water, cmp.alternative.water, v=>num(v), 1],
-    [t('whatif.fertility'), a.fertilityAfter - a.fertilityBefore, b.fertilityAfter - b.fertilityBefore, v=>signed(v), 1],
-    [t('whatif.erosion'), Math.round(a.erosionEvent), Math.round(b.erosionEvent), v=>num(v), -1],
-    [t('whatif.leached'), Math.round(a.nitrogen.leached), Math.round(b.nitrogen.leached), v=>num(v), -1],
-  ];
-  const cls = (x, y, dir) => !dir || x===y ? '' : (y-x)*dir > 0 ? 'better' : 'worse';
+function otherValues(field, base){
+  const table = { crop:model.crops, method:model.irrigation_methods, intensity:model.irrigation_intensity, care:model.soil_care }[field];
+  return Object.keys(R.options(table)).filter(v=>v!==base[field]);
+}
+async function runWhatIf(){
+  const w = whatIf; w.busy = true; w.error = null; renderWhatIf();
+  const decisions = pending ? [...game.decisions, pending.outcome.decision] : game.decisions;
+  try{
+    const res = await client.whatIf(gameBody({ decisions, season:w.season, field:w.field, value:w.value }));
+    if(whatIf!==w) return;
+    w.result = res.comparison;
+  }catch(e){
+    if(whatIf!==w) return;
+    w.result = null;
+    w.error = e.kind==='rejected' ? t('whatif.unaffordable') : t(`error.${errorKey(e)}.short`);
+  }
+  w.busy = false; renderWhatIf();
+}
+function renderWhatIf(){
+  const w = whatIf, r = w.result;
+  const fields = ['crop','method','intensity','care'];
+  const rows = r ? [
+    [t('whatif.yield'), `${num(r.player.yield_pct)}%`, `${num(r.alternative.yield_pct)}%`, r.diff.yield_pct, 1],
+    [t('whatif.profit'), fmt$(r.player.profit), fmt$(r.alternative.profit), r.diff.profit, 1],
+    [t('whatif.pumped'), `${num(r.player.pumped_mm)} mm`, `${num(r.alternative.pumped_mm)} mm`, r.diff.pumped_mm, -1],
+    [t('whatif.useful'), `${num(r.player.useful_mm)} mm`, `${num(r.alternative.useful_mm)} mm`, r.diff.useful_mm, 1],
+    [t('whatif.reserve'), `${num(r.player.reserve_after_mm)} mm`, `${num(r.alternative.reserve_after_mm)} mm`, r.diff.reserve_after_mm, 1],
+    [t('whatif.fertility'), num(r.player.fertility_after), num(r.alternative.fertility_after), r.diff.fertility_after, 1],
+    [t('whatif.erosion'), dec1(r.player.erosion_event), dec1(r.alternative.erosion_event), r.diff.erosion_event, -1],
+    [t('whatif.leached'), `${dec1(r.player.n_leached)} kg`, `${dec1(r.alternative.n_leached)} kg`, r.diff.n_leached, -1],
+  ] : [];
+  const cls = (d, dir) => !d ? '' : d*dir>0 ? 'better' : 'worse';
   $('whatif').innerHTML = `
-    <div class="eyebrow">${esc(t('whatif.eyebrow', { season:seasonLabel(a.season) }))}</div>
+    <div class="eyebrow">${esc(t('whatif.eyebrow'))}</div>
     <h2 id="wi-title">${esc(t('whatif.title'))}</h2>
+    <p class="note-sm">${esc(t('whatif.rule'))}</p>
     <div class="wi-grid">
-      <div class="wi-col"><h3>${esc(t('whatif.yours'))}</h3><p>${esc(describeDecision(whatIf.player))}</p></div>
+      <div class="wi-col"><h3>${esc(t('whatif.yours'))}</h3><p>${esc(describeDecision(w.base))}</p></div>
       <div class="wi-col alt-col"><h3>${esc(t('whatif.alternative'))}</h3>
-        ${sel('wi-crop', t('whatif.crop'), E.CROP_IDS.map(id=>[id, cropName(id)]), alt.crop)}
-        ${sel('wi-irr', t('whatif.irrigationSel'), E.IRRIGATION.map((o,k)=>[k, irrName(k)]), alt.irrigation)}
-        ${sel('wi-method', t('whatif.method'), Object.keys(E.METHODS).map(m=>[m, t(`methods.${m}.name`)]), alt.method || 'sprinkler')}
-        ${sel('wi-fert', t('whatif.fertilizer'), Object.keys(E.FERTILIZERS).map(f=>[f, t(`fertilizers.${f}.name`)]), alt.fertilizer)}
-        ${sel('wi-prot', t('whatif.protection'), Object.keys(E.PROTECTION).map(p=>[p, t(`protection.${p}.name`)]), alt.protection || 'none')}
-        <button class="btn" type="button" id="wi-best">${IC.star} ${esc(t('whatif.useBest'))}</button>
+        <label>${esc(t('whatif.fieldSel'))}<select id="wi-field">${fields.map(f=>`<option value="${f}"${f===w.field?' selected':''}>${esc(t(`decisions.field.${f}`))}</option>`).join('')}</select></label>
+        <label>${esc(t('whatif.valueSel'))}<select id="wi-value">${otherValues(w.field, w.base).map(v=>`<option value="${v}"${v===w.value?' selected':''}>${esc(decisionPart(w.field, v))}</option>`).join('')}</select></label>
       </div>
     </div>
-    ${cmp.alternative.affordable ? '' : `<p class="missing show">${esc(t('whatif.unaffordable'))}</p>`}
-    <div class="table-wrap"><table class="table">
-      <thead><tr><th>${esc(t('whatif.metric'))}</th><th>${esc(t('whatif.yours'))}</th><th>${esc(t('whatif.alternative'))}</th></tr></thead>
-      <tbody>${rows.map(([l,x,y,f,dir])=>`<tr><td>${esc(l)}</td><td>${f(x)}</td><td class="${cls(x,y,dir)}">${f(y)}</td></tr>`).join('')}
-        <tr><td>${esc(t('whatif.state'))}</td><td>${esc(t(`states.${a.state}`))}</td><td>${esc(t(`states.${b.state}`))}</td></tr></tbody>
+    ${w.busy ? `<p class="note-sm">${esc(t('actions.loading'))}</p>` : ''}
+    ${w.error ? `<p class="missing show">${esc(w.error)}</p>` : ''}
+    ${r ? `<div class="table-wrap"><table class="table">
+      <thead><tr><th>${esc(t('whatif.metric'))}</th><th>${esc(t('whatif.yours'))}</th><th>${esc(changeText(r.change))}</th></tr></thead>
+      <tbody>${rows.map(([l,a,b,d,dir])=>`<tr><td>${esc(l)}</td><td>${a}</td><td class="${cls(d,dir)}">${b}</td></tr>`).join('')}
+        <tr><td>${esc(t('whatif.state'))}</td><td>${esc(t(`states.${r.player.state}`))}</td><td>${esc(t(`states.${r.alternative.state}`))}</td></tr></tbody>
     </table></div>
+    ${r.drivers.length ? `<p class="note-sm">${esc(t('whatif.drivers', { list:r.drivers.map(d=>`${t(`factor.${d}`)} (${signed(r.factor_delta_pp[d], dec1)} ${t('units.pp')})`).join(', ') }))}</p>` : ''}` : ''}
     <p class="note-sm">${esc(t('whatif.note'))}</p>
     <div class="brief-foot"><button class="btn btn-primary" type="button" id="wi-close" data-autofocus>${esc(t('actions.backToReport'))}</button></div>`;
-  const bind = (id, key, parse=v=>v) => { $(id).onchange = e=>{ whatIf.alt = { ...whatIf.alt, [key]:parse(e.target.value) }; renderWhatIf(id); }; };
-  bind('wi-crop','crop'); bind('wi-irr','irrigation',Number); bind('wi-method','method'); bind('wi-fert','fertilizer'); bind('wi-prot','protection');
-  $('wi-best').onclick = ()=>{ const best = bestFor(pending); if(best){ whatIf.alt = { ...best.decision }; renderWhatIf('wi-best'); } };
+  $('wi-field').onchange = e=>{ w.field = e.target.value; w.value = otherValues(w.field, w.base)[0]; runWhatIf(); };
+  $('wi-value').onchange = e=>{ w.value = e.target.value; runWhatIf(); };
   $('wi-close').onclick = ()=>closeOv('ov-whatif');
-  if(focusId && $(focusId)) $(focusId).focus();
 }
 
 /* ---------- End of a level ---------- */
-function finishLevel(){
-  const ev = E.evaluateLevel(run);
-  lastEval = { ev, run, bestPlan: undefined };
-  progress = E.recordResult(progress, ev, { date:new Date().toISOString().slice(0,10), data:climate.status, place: isDemo() ? null : placeLabel(place) });
+function finishLevel(ev){
+  lastEval = { ev, game: { ...game } };
+  progress = R.recordResult(progress, ev, { date:new Date().toISOString().slice(0,10), data:game.data.status, year:game.year,
+    place: isDemo() ? null : placeLabel(farm), soil:farm.soil });
   writeJSON(KEYS.progress, progress);
   phase = 'done';
   renderControls();
-  setFieldState(ev.passed ? 'harvest' : 'failed', ev.passed ? 'clear' : 'cloudy');
+  setFieldState(ev.passed ? 'harvest' : 'failed', ev.passed ? 'clear' : 'cloudy', ev.passed ? 0.7 : 0.18);
   showBanner();
 }
 function showBanner(){ renderBanner(); $('banner').classList.add('show'); $('btn-final').focus(); }
 function renderBanner(){
-  const passed = lastEval.ev.passed;
-  $('banner-card').innerHTML = passed
-    ? `<div class="big-ic" style="background:#C9971B">${IC.basket}</div><h2>${esc(t('banner.win.title'))}</h2><p>${esc(t('banner.win.text'))}</p><button class="btn btn-primary btn-lg" type="button" id="btn-final">${IC.trophy} ${esc(t('actions.seeResult'))}</button>`
-    : `<div class="big-ic" style="background:#8E2A1F">${IC.x}</div><h2>${esc(t('banner.fail.title'))}</h2><p>${esc(t(lastEval.ev.failReason==='bankrupt' ? 'banner.fail.bankrupt' : 'banner.fail.text'))}</p><button class="btn btn-lg" type="button" id="btn-final">${IC.trophy} ${esc(t('actions.seeResult'))}</button>`;
+  const ev = lastEval.ev, passed = ev.passed;
+  const text = passed ? t('banner.win.text') : t(`banner.fail.${ev.fail_reason}`);
+  $('banner-card').innerHTML = `<div class="big-ic" style="background:${passed?'#C9971B':'#8E2A1F'}">${passed?IC.basket:IC.x}</div>
+    <h2>${esc(t(passed ? 'banner.win.title' : 'banner.fail.title'))}</h2><p>${esc(text)}</p>
+    <button class="btn ${passed?'btn-primary':''} btn-lg" type="button" id="btn-final">${IC.trophy} ${esc(t('actions.seeResult'))}</button>`;
   $('btn-final').onclick = ()=>{ $('banner').classList.remove('show'); showResult(); };
 }
 function showResult(){ renderResult(); show('final'); scrollTop(); }
+function downloadJSON(name, data){
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function exportLevel(){
+  const { ev, game:g } = lastEval;
+  downloadJSON(`farm-navigator-level${ev.level_id}-${g.year}.json`, {
+    exported_at: new Date().toISOString(), game:'Farm Navigator', level:{ id:ev.level_id, key:g.level.key },
+    farm:{ ...farm, place_label: placeLabel(farm) }, start_year:g.year, data_provenance:g.data,
+    seasons: g.results.map(o=>({ ...seasonByYear(o.year), daily: undefined })),
+    decisions:g.decisions, results:g.results.map(o=>({ ...o, trace: undefined })), evaluation:ev,
+    model_limitations: model.limitations, disclaimer: model.disclaimer,
+  });
+}
 function renderResult(){
-  const { ev, run:r } = lastEval, m = ev.metrics, level = E.levelById(ev.levelId);
-  if(lastEval.bestPlan===undefined) lastEval.bestPlan = E.bestPlan(E.createRun(level.id, climate.data));
-  const plan = lastEval.bestPlan, planEval = plan ? E.evaluateLevel(plan.run) : null;
-  const nextLevel = E.LEVELS.find(l=>l.id===level.id+1);
+  const { ev, game:g } = lastEval, m = ev.metrics, level = g.level;
+  const nextLevel = model.levels.find(l=>l.id===level.id+1);
   const star = (on, cls='') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path class="${on?'star-on':'star-off'}" stroke-width="1.4" stroke-linejoin="round" d="M12 2.8l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z"/></svg>`;
   const cat = (key, label, score, extra) => { const c = ev.categories[key]; return `<div class="cat${c.earned && ev.passed?' on':''}">${star(c.earned && ev.passed)}<b>${score}</b><small>${esc(label)}</small><small>${esc(extra)}</small></div>`; };
   const kv = (label, value, cls='') => `<div><small>${esc(label)}</small><b class="${cls}">${value}</b></div>`;
   const dcls = (d, goodUp=true) => d===0 ? '' : (d>0)===goodUp ? 'up' : 'down';
+  const failText = ev.passed ? t('result.passedText', { stars:ev.stars }) : t(`result.fail.${ev.fail_reason}`);
   $('final').innerHTML = `
     <div class="final-hero">
       <div class="score-card">
@@ -972,68 +1249,68 @@ function renderResult(){
         <div class="rank">${esc(t(ev.passed ? 'result.passed' : 'result.failed'))}</div>
         <div class="harvest-result ${ev.passed?'ok':'bad'}">
           <span class="hic" style="background:${ev.passed?'#C9971B':'#8E2A1F'}">${ev.passed?IC.basket:IC.x}</span>
-          <span>${esc(ev.passed ? t('result.passedText', { stars:ev.stars }) : ev.failReason==='bankrupt' ? t('result.bankrupt', { min:fmt$(E.MODEL.MIN_SEED_COST) }) : t('result.failedText'))}</span>
+          <span>${esc(failText)}</span>
         </div>
       </div>
       <div class="final-side">
         <div class="card"><h3>${IC.flag} ${esc(t('result.goals'))}</h3>
-          <ul class="goal-list">${ev.goals.map(g=>`<li class="${g.met?'ok':'no'}"><span class="gi">${g.met?IC.check:IC.x}</span>${esc(goalText(g))}<em>${esc(goalValue(g.metric, g.actual))}</em></li>`).join('')}</ul></div>
+          <ul class="goal-list">${ev.goals.map(gl=>`<li class="${gl.met?'ok':'no'}"><span class="gi">${gl.met?IC.check:IC.x}</span>${esc(goalText(gl))}<em>${esc(goalValue(gl.metric, gl.actual))}</em></li>`).join('')}</ul></div>
         <div class="card"><h3>${IC.star} ${esc(t('result.categories'))}</h3>
           <div class="cats">
             ${cat('yield', t('result.cat.yield'), `${ev.categories.yield.score}%`, t('result.cat.target', { value:`${ev.categories.yield.target}%` }))}
             ${cat('water', t('result.cat.water'), ev.categories.water.score, t('result.cat.target', { value:ev.categories.water.target }))}
-            ${cat('soil', t('result.cat.soil'), ev.categories.soil.score, t('result.cat.soilTarget', { value:signed(ev.categories.soil.target), delta:signed(m.fertilityDelta) }))}
-          </div></div>
+            ${cat('soil', t('result.cat.soil'), ev.categories.soil.score, t('result.cat.soilTarget', { value:signed(ev.categories.soil.target), delta:signed(m.fertility_delta) }))}
+          </div><p class="note-sm" style="margin-top:8px">${esc(t('result.starsNote'))}</p></div>
       </div>
     </div>
     <div class="final-grid">
       <div class="card"><h3>${IC.coin} ${esc(t('result.totals'))}</h3><div class="kv">
         ${kv(t('result.profit'), `${m.profit>=0?'+':''}${fmt$(m.profit)}`, dcls(m.profit))}
         ${kv(t('result.revenue'), fmt$(m.revenue))}
-        ${kv(t('result.avgYield'), `${num(m.avgYield)}%`)}
-        ${kv(t('result.irrigation'), `${num(m.irrigationMm)} mm`)}
-        ${kv(t('result.wasted'), `${num(m.wastedMm)} mm`, m.wastedMm>0?'down':'')}
-        ${kv(t('result.reserveUsed'), num(m.reserveUsed))}
-        ${kv(t('result.reserveEnd'), `${num(m.reserveEnd)}%`)}
+        ${kv(t('result.finalBudget'), fmt$(m.final_budget))}
+        ${kv(t('result.avgYield'), `${num(m.avg_yield)}%`)}
+        ${kv(t('result.pumped'), `${num(m.pumped_mm)} mm`)}
+        ${kv(t('result.useful'), `${num(m.useful_mm)} mm`)}
+        ${kv(t('result.reserveEnd'), `${num(m.reserve_end)} mm`)}
       </div></div>
       <div class="card"><h3>${IC.soil} ${esc(t('result.soil'))}</h3><div class="kv">
-        ${kv(t('meters.fertility'), `${num(m.fertilityEnd)} (${signed(m.fertilityDelta)})`, dcls(m.fertilityDelta))}
-        ${kv(t('soil.n'), signed(m.nDelta), dcls(m.nDelta))}
-        ${kv(t('soil.om'), signed(m.omDelta), dcls(m.omDelta))}
-        ${kv(t('soil.erosion'), signed(m.erosionDelta), dcls(m.erosionDelta, false))}
-        ${kv(t('soil.moisture'), signed(m.moistureDelta), dcls(m.moistureDelta))}
-        ${kv(t('result.leached'), `${num(m.nLeached)} kg N`, m.nLeached>10?'down':'')}
+        ${kv(t('meters.fertility'), `${num(m.fertility_end)} (${signed(m.fertility_delta)})`, dcls(m.fertility_delta))}
+        ${kv(t('soil.n'), signed(m.n_delta, dec1), dcls(m.n_delta))}
+        ${kv(t('soil.om'), signed(m.om_delta, dec), dcls(m.om_delta))}
+        ${kv(t('soil.erosion'), signed(m.erosion_delta, dec1), dcls(m.erosion_delta, false))}
+        ${kv(t('result.leached'), t('units.kgN', { n:dec1(m.n_leached) }), m.n_leached>15?'down':'')}
       </div></div>
     </div>
     <div class="card" style="padding:18px;margin-top:18px"><h3>${IC.map} ${esc(t('result.seasons'))}</h3>
-      <div class="timeline">${r.results.map(o=>{ const S = STATES[o.state]; return `
-        <div class="tl"><div class="tl-top">${cropIcon(o.decision.crop)}<div><small>${esc(seasonLabel(o.season))}</small><b>${esc(cropName(o.decision.crop))}</b></div><span class="hp" style="color:${barColor(o.yield)}">${o.yield}%</span></div>
+      <div class="timeline">${g.results.map(o=>{ const S = STATES[o.state] || STATES.healthy, s = seasonByYear(o.year); return `
+        <div class="tl"><div class="tl-top">${cropIcon(o.decision.crop)}<div><small>${esc(seasonTitle(s))}</small><b>${esc(cropName(o.decision.crop))}</b></div><span class="hp" style="color:${barColor(o.yield_pct)}">${o.yield_pct}%</span></div>
         <span class="state" style="background:${S.color}1f;color:${S.color}">${IC[S.ic]}${esc(t(`states.${o.state}`))}</span>
-        <p class="note-sm" style="margin-top:6px">${esc(describeDecision(o.decision))}</p></div>`; }).join('')}</div></div>
+        <p class="note-sm" style="margin-top:6px">${esc(describeDecision(o.decision))}</p>
+        <p class="note-sm">${esc(t('result.seasonLine', { rain:num(s.features.rain_total_mm), hot:s.features.hot_days, pumped:num(o.water.pumped_mm), profit:fmt$(o.economics.profit) }))}</p></div>`; }).join('')}</div></div>
     <div class="final-grid">
-      <div class="card"><h3>${IC.bulb} ${esc(t('result.recommendations'))}</h3><ul class="lessons">${ev.recommendations.map(k=>`<li><span class="lic">${IC.check}</span><span>${esc(t(`rec.${k}`))}</span></li>`).join('')}</ul></div>
-      <div class="card"><h3>${IC.star} ${esc(t('result.bestPlan'))}</h3>
-        ${plan ? `<ul class="lessons">${plan.path.map((d,i)=>`<li><span class="lic" style="background:var(--green-500)">${i+1}</span><span><b>${esc(seasonLabel(plan.outcomes[i].season))}:</b> ${esc(describeDecision(d))} — ${num(plan.outcomes[i].yield)}%</span></li>`).join('')}</ul>
-          <p class="note-sm" style="margin-top:10px">${esc(t('result.bestPlanScore', { stars:planEval.stars, score:planEval.score, profit:fmt$(planEval.metrics.profit) }))}</p>` : `<p class="note-sm">${esc(t('result.noPlan'))}</p>`}
-      </div>
+      <div class="card"><h3>${IC.bulb} ${esc(t('result.recommendations'))}</h3><ul class="lessons">${(ev.recommendations.length ? ev.recommendations : ['keep']).map(k=>`<li><span class="lic">${IC.check}</span><span>${esc(t(`rec.${k}`))}</span></li>`).join('')}</ul></div>
+      <div class="card"><h3>${IC.satellite} ${esc(t('result.data'))}</h3>${provenanceHtml(g.data, false)}
+        <details class="limits"><summary>${esc(t('report.limits'))}</summary><ul>${model.limitations.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></details></div>
     </div>
     <div class="final-actions">
       ${ev.passed && nextLevel ? `<button class="btn btn-primary btn-lg" type="button" id="res-next">${IC.play} ${esc(t('actions.nextLevel', { n:nextLevel.id }))}</button>` : ''}
-      <button class="btn btn-lg${ev.passed?'':' btn-primary'}" type="button" id="res-retry">${IC.refresh} ${esc(t('actions.retry'))}</button>
+      <button class="btn btn-lg${ev.passed?'':' btn-primary'}" type="button" id="res-retry">${IC.refresh} ${esc(t('actions.replayLevel'))}</button>
       <button class="btn btn-lg" type="button" id="res-levels">${IC.grid} ${esc(t('actions.levels'))}</button>
-      ${E.farmReport(progress).allPassed ? `<button class="btn btn-lg btn-nasa" type="button" id="res-farm">${IC.trophy} ${esc(t('farm.open'))}</button>` : ''}
+      <button class="btn btn-lg" type="button" id="res-export">${IC.download} ${esc(t('actions.export'))}</button>
+      ${R.farmReport(progress, model.levels).rows.some(r=>r.best) ? `<button class="btn btn-lg btn-nasa" type="button" id="res-farm">${IC.trophy} ${esc(t('farm.open'))}</button>` : ''}
     </div>
-    <p class="disclaimer">${esc(t('result.provenance', { source: t(`status.${climate.status}`), place: isDemo() ? t('levels.demoPlace') : placeLabel(place) }))}<br>${esc(t('final.disclaimer'))}</p>`;
-  if($('res-next')) $('res-next').onclick = ()=>openBrief(nextLevel.id);
-  $('res-retry').onclick = ()=>openBrief(level.id);
+    <p class="disclaimer">${esc(model.disclaimer)}</p>`;
+  if($('res-next')) $('res-next').onclick = ()=>{ showLevels(); openBrief(nextLevel.id); };
+  $('res-retry').onclick = ()=>{ showLevels(); openBrief(level.id); };
   $('res-levels').onclick = showLevels;
+  $('res-export').onclick = exportLevel;
   if($('res-farm')) $('res-farm').onclick = showFarm;
 }
 
-/* ---------- Farm report ---------- */
+/* ---------- Farm report (whole game) ---------- */
 function showFarm(){ renderFarm(); show('farm'); scrollTop(); }
 function renderFarm(){
-  const rep = E.farmReport(progress);
+  const rep = R.farmReport(progress, model.levels);
   const ratio = rep.totalStars / rep.maxStars;
   const rank = t('final.rank.'+(ratio>=0.85?'master':ratio>=0.6?'skilled':ratio>=0.3?'growing':'rookie'));
   $('farm').innerHTML = `
@@ -1043,7 +1320,7 @@ function renderFarm(){
         <div class="score-num">${rep.totalStars}<span>/${rep.maxStars}</span></div>
         <div class="rank">${esc(rank)}</div>
         <div class="harvest-result ${rep.allPassed?'ok':'bad'}"><span class="hic" style="background:${rep.allPassed?'#C9971B':'#8C5E3C'}">${IC.trophy}</span>
-          <span>${esc(t('farm.completed', { n:rep.completed, total:E.LEVELS.length }))}</span></div>
+          <span>${esc(t('farm.completed', { n:rep.completed, total:model.levels.length }))}</span></div>
       </div>
       <div class="final-side">
         <div class="card"><h3>${IC.star} ${esc(t('result.categories'))}</h3><div class="cats">
@@ -1054,15 +1331,15 @@ function renderFarm(){
         ${rep.weakest ? `<p class="note-sm" style="margin-top:10px">${esc(t(`farm.weak.${rep.weakest}`))}</p>` : ''}</div>
         <div class="card"><h3>${IC.coin} ${esc(t('result.totals'))}</h3><div class="kv">
           <div><small>${esc(t('farm.totalProfit'))}</small><b class="${rep.totalProfit>=0?'up':'down'}">${rep.totalProfit>=0?'+':''}${fmt$(rep.totalProfit)}</b></div>
-          <div><small>${esc(t('farm.totalIrrigation'))}</small><b>${num(rep.totalIrrigationMm)} mm</b></div>
+          <div><small>${esc(t('farm.totalPumped'))}</small><b>${num(rep.totalPumpedMm)} mm</b></div>
         </div></div>
       </div>
     </div>
     <div class="card" style="padding:18px;margin-top:18px"><h3>${IC.grid} ${esc(t('farm.levels'))}</h3>
       <div class="table-wrap"><table class="table">
         <thead><tr><th>${esc(t('farm.level'))}</th><th>${esc(t('farm.stars'))}</th><th>${esc(t('result.cat.yield'))}</th><th>${esc(t('result.cat.water'))}</th><th>${esc(t('result.cat.soil'))}</th><th>${esc(t('result.profit'))}</th><th>${esc(t('farm.data'))}</th></tr></thead>
-        <tbody>${rep.rows.map(row=>{ const level = E.levelById(row.id), b = row.best; return `<tr>
-          <td>${row.id}. ${esc(levelName(level))}</td>
+        <tbody>${rep.rows.map(row=>{ const level = R.levelById(model, row.id), b = row.best; return `<tr>
+          <td>${row.id}. ${esc(levelName(level))}${b && b.year ? `<br><small class="note-sm">${esc([b.place, b.year, b.soil && soilName(b.soil)].filter(Boolean).join(' · '))}</small>` : ''}</td>
           <td><span class="mini-stars" style="justify-content:flex-end">${starsSvg(b ? b.stars : 0)}</span></td>
           <td>${b ? `${num(b.yield)}%` : '—'}</td><td>${b ? num(b.water) : '—'}</td><td>${b ? num(b.soil) : '—'}</td>
           <td>${b ? fmt$(b.profit) : '—'}</td><td>${b ? esc(t(`status.${b.data || 'live'}`)) : '—'}</td></tr>`; }).join('')}</tbody>
@@ -1071,34 +1348,37 @@ function renderFarm(){
       <ul class="lessons">${[1,2,3,4,5].map(k=>`<li><span class="lic">${IC.check}</span><span>${esc(t(`farm.lesson.${k}`))}</span></li>`).join('')}</ul></div>
     <div class="final-actions">
       <button class="btn btn-primary btn-lg" type="button" id="farm-levels">${IC.grid} ${esc(t('actions.levels'))}</button>
+      <button class="btn btn-lg" type="button" id="farm-export">${IC.download} ${esc(t('actions.export'))}</button>
       <button class="btn btn-lg btn-ghost" type="button" id="farm-reset">${IC.refresh} ${esc(t('farm.reset'))}</button>
     </div>
-    <p class="disclaimer">${esc(t('final.disclaimer'))}</p>`;
+    <p class="disclaimer">${esc(model.disclaimer)}</p>`;
   $('farm-levels').onclick = showLevels;
+  $('farm-export').onclick = ()=>downloadJSON('farm-navigator-farm-report.json', { exported_at:new Date().toISOString(), game:'Farm Navigator', report:rep,
+    model_limitations:model.limitations, disclaimer:model.disclaimer });
   $('farm-reset').onclick = ()=>{
     if(!window.confirm(t('farm.resetConfirm'))) return;
-    progress = E.emptyProgress(); writeJSON(KEYS.progress, progress); showLevels();
+    progress = R.emptyProgress(); writeJSON(KEYS.progress, progress); showLevels();
   };
 }
 
 /* =========================================================
    PAUSE
    ========================================================= */
-function pauseGame(){ paused = true; openOv('ov-pause'); }
-function resumeGame(){ paused = false; closeOv('ov-pause'); }
+function pauseGame(){ paused = true; $('stage').classList.add('paused'); openOv('ov-pause'); }
+function resumeGame(){ paused = false; $('stage').classList.remove('paused'); closeOv('ov-pause'); }
 function leaveLevelConfirmed(){
-  return !(run && run.results.length && !run.finished && !run.failed) || window.confirm(t('confirm.leave'));
+  return !(game && game.decisions.length && phase!=='done') || window.confirm(t('confirm.leave'));
 }
 
 /* =========================================================
    TUTORIAL
    ========================================================= */
 const TUT = [
-  { id:'welcome', art:()=>`<div style="display:flex;gap:10px">${E.CROP_IDS.map(cropIcon).join('')}</div>`, bg:'linear-gradient(180deg,#BFE1F5,#EEF6E6)',
+  { id:'welcome', art:()=>`<div style="display:flex;gap:10px">${['wheat','maize','sorghum','chickpea'].map(cropIcon).join('')}</div>`, bg:'linear-gradient(180deg,#BFE1F5,#EEF6E6)',
     chips:()=>[t('tut.welcome.chip1'),t('tut.welcome.chip2'),t('tut.welcome.chip3')] },
   { id:'sky', art:()=>`<div style="width:120px;height:120px">${IC['satellite-color']}</div>`, bg:'linear-gradient(180deg,#0B3D91,#1E6FD9)',
-    chips:()=>['T2M','PRECTOTCORR','RH2M','WS2M','ALLSKY_SFC_SW_DWN'] },
-  { id:'decide', art:()=>`<div style="display:flex;gap:12px;color:#fff">${['sprout','drop','flask','shield'].map(i=>`<span style="width:60px;height:60px;border-radius:20px;background:rgba(255,255,255,.18);display:grid;place-items:center">${IC[i].replace('class="icon"','class="icon" style="width:32px;height:32px"')}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#3E9B4F,#23603F)',
+    chips:()=>['T2M','T2M_MAX','T2M_MIN','PRECTOTCORR','RH2M','WS2M','ALLSKY_SFC_SW_DWN'] },
+  { id:'decide', art:()=>`<div style="display:flex;gap:12px;color:#fff">${['sprout','sprinkler','drop','shield'].map(i=>`<span style="width:60px;height:60px;border-radius:20px;background:rgba(255,255,255,.18);display:grid;place-items:center">${IC[i].replace('class="icon"','class="icon" style="width:32px;height:32px"')}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#3E9B4F,#23603F)',
     chips:()=>[t('tut.decide.chip1'),t('tut.decide.chip2'),t('tut.decide.chip3'),t('tut.decide.chip4')] },
   { id:'watch', art:()=>`<div style="display:flex;gap:10px">${['healthy','drought','overwater','lownutrients'].map(s=>`<span style="width:54px;height:54px;border-radius:16px;background:${STATES[s].color};color:#fff;display:grid;place-items:center">${IC[STATES[s].ic]}</span>`).join('')}</div>`, bg:'linear-gradient(180deg,#FBF0D6,#F3E8D2)',
     chips:()=>[t('tut.watch.chip1'),t('tut.watch.chip2'),t('tut.watch.chip3')] },
@@ -1125,7 +1405,6 @@ function renderTut(){
   $('tut-skip').onclick = ()=>{ if(tutStep===0) closeOv('ov-tut'); else { tutStep--; renderTut(); $('tut-skip').focus(); } };
   $('tut-next').onclick = ()=>{ if(last) closeOv('ov-tut'); else { tutStep++; renderTut(); $('tut-next').focus(); } };
 }
-
 /* =========================================================
    PREFERENCE CONTROLS (header dropdowns + mobile menu)
    State lives in FarmPrefs; these controls only render it.
@@ -1278,12 +1557,12 @@ function renderPrefs(){
 function applyLanguage(){
   LANG = FarmPrefs.get().resolvedLanguage;
   applyStaticI18n();
-  if(screen==='location') renderLocation();
-  if(screen==='levels' && climate) renderLevels();
+  if(screen==='loading') $('loading-title').textContent = t(bootStage==='config' ? 'loading.connect' : 'loading.title');
+  if(screen==='location' && draft) renderLocation();
+  if(screen==='levels' && archive) renderLevels();
   if(screen==='error') renderError();
-  if(screen==='loading' && place) $('loading-text').textContent = t('loading.text', { place: placeLabel(place) });
-  if(screen==='game' && run) renderGame();
-  if(ovOpen('ov-level') && briefLevel) renderBrief();
+  if(screen==='game' && game) renderGame();
+  if(ovOpen('ov-level') && brief) renderBrief();
   if(ovOpen('ov-report') && pending) renderReport();
   if(ovOpen('ov-whatif') && whatIf) renderWhatIf();
   if(ovOpen('ov-tut')) renderTut();
@@ -1304,33 +1583,41 @@ document.addEventListener('click', e=>{
   const b = e.target.closest('button');
   if(!b || b.disabled) return;
   const ds = b.dataset;
-  if(phase==='plan' && run){
-    if(ds.crop){ decision = { ...decision, crop:ds.crop }; renderControls(); renderPlants(); return; }
-    if(ds.irr!==undefined){ decision = { ...decision, irrigation:Number(ds.irr) }; renderControls(); return; }
-    if(ds.method){ decision = { ...decision, method:ds.method }; renderControls(); return; }
-    if(ds.fert){ decision = { ...decision, fertilizer:ds.fert }; renderControls(); return; }
-    if(ds.prot){ decision = { ...decision, protection:ds.prot }; renderControls(); return; }
+  if(phase==='plan' && game && screen==='game'){
+    for(const field of R.DECISION_FIELDS){
+      if(ds[field]){ decision = { ...decision, [field]:ds[field] }; game.error = null; renderControls(); if(field==='crop') renderPlants(); return; }
+    }
   }
-  if(ds.level){ openBrief(Number(ds.level)); return; }
-  if(ds.preset!==undefined){ choosePlace({ ...PRESETS[Number(ds.preset)] }); return; }
-  if(ds.result!==undefined && searchResults){
-    const p = searchResults[Number(ds.result)];
-    choosePlace({ name:p.name, admin1:p.admin1 || null, country:p.country || null, latitude:p.latitude, longitude:p.longitude });
+  if(screen==='location' && draft){
+    if(ds.soil){ draft.soil = ds.soil; draft.message = ''; renderSoilPick(); renderSetupCheck(); return; }
+    if(ds.preset){
+      const p = presetById(ds.preset);
+      draft.start_md = p.start_md; draft.end_md = p.end_md; if(!draft.soil) draft.soil = p.soil;
+      setDraftPlace(p, { preset:p.id }); return;
+    }
+    if(ds.result!==undefined && searchResults){
+      const p = searchResults[Number(ds.result)];
+      setDraftPlace(p, { name:p.name, admin1:p.admin1 || null, country:p.country || null }); return;
+    }
   }
+  if(ds.year && brief){ brief = { ...brief, year:Number(ds.year), error:null }; renderBrief(); const y = $('brief').querySelector(`[data-year="${ds.year}"]`); if(y) y.focus(); return; }
+  if(ds.level){ openBrief(Number(ds.level)); }
 });
+['per-start-m','per-start-d','per-end-m','per-end-d'].forEach(id=>$(id).addEventListener('input', ()=>{ if(!draft) return; readPeriodInputs(); draft.message=''; renderSetupCheck(); }));
+$('btn-load').onclick = confirmFarm;
 $('btn-confirm').onclick = confirmDecision;
 $('btn-help').onclick = ()=>openTutorial(0);
 $('btn-help-levels').onclick = ()=>openTutorial(0);
 $('btn-pause').onclick = pauseGame;
 $('btn-resume').onclick = resumeGame;
 $('btn-pause-help').onclick = ()=>{ resumeGame(); openTutorial(0); };
-$('btn-pause-levels').onclick = ()=>{ if(!leaveLevelConfirmed()) return; paused = false; showLevels(); };
-$('btn-restart').onclick = ()=>{ if(!leaveLevelConfirmed()) return; paused = false; startLevel(run.levelId); };
-$('btn-retry').onclick = ()=>loadClimate(true);
+$('btn-pause-levels').onclick = ()=>{ if(!leaveLevelConfirmed()) return; showLevels(); };
+$('btn-restart').onclick = ()=>{ if(!leaveLevelConfirmed()) return; const id = game.level.id, y = game.year; showLevels(); brief = { levelId:id, year:y, error:null, busy:false }; startLevel(id, y); };
+$('btn-retry').onclick = ()=>{ if(bootStage==='config' || !model) boot(); else loadArchive(); };
 $('btn-demo').onclick = useDemo;
-$('btn-err-location').onclick = showLocation;
-$('btn-refresh').onclick = ()=>loadClimate(true);
-$('btn-change-location').onclick = showLocation;
+$('btn-err-location').onclick = ()=>showLocation();
+$('btn-refresh').onclick = ()=>{ demoMode = false; loadArchive(); };
+$('btn-change-location').onclick = ()=>showLocation();
 $('btn-farm-report').onclick = showFarm;
 $('view-farm').onclick = ()=>setView(false);
 $('view-sat').onclick = ()=>setView(true);
@@ -1343,7 +1630,7 @@ $('loc-manual').addEventListener('submit', e=>{
   const msg = $('loc-manual-msg');
   msg.classList.toggle('err', !ok);
   msg.textContent = t(ok ? 'location.manualHint' : 'location.invalid');
-  if(ok) choosePlace({ custom:true, latitude:Math.round(Number(la)*1e4)/1e4, longitude:Math.round(Number(lo)*1e4)/1e4 });
+  if(ok) setDraftPlace({ latitude:Number(la), longitude:Number(lo) }, {});
 });
 document.addEventListener('keydown', e=>{
   if(e.key!=='Escape') return;
@@ -1363,6 +1650,6 @@ hydrateIcons();
 mountPrefs();
 (function rain(){ let h=''; for(let k=0;k<60;k++) h+=`<span style="left:${(k*37%110)}%;animation-duration:${(.6+(k*13%50)/100).toFixed(2)}s;animation-delay:${(-(k*29%200)/100).toFixed(2)}s"></span>`; $('rain').innerHTML=h; })();
 buildField();
-if(place) loadClimate(false); else showLocation();
+boot();
 
 })();

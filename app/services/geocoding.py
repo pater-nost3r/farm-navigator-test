@@ -6,7 +6,7 @@ Docs: https://open-meteo.com/en/docs/geocoding-api
 import httpx
 
 from app.config import Settings
-from app.models.climate import Place
+from app.models.api import Place
 from app.services.cache import TTLCache
 
 SOURCE = "Open-Meteo Geocoding API (GeoNames)"

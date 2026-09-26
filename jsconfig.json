@@ -10,5 +10,5 @@
     "noImplicitAny": false,
     "types": []
   },
-  "include": ["js/engine.js", "js/nasa-client.js"]
+  "include": ["js/rules.js", "js/nasa-client.js"]
 }

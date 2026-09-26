@@ -9,7 +9,7 @@ export default [
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
-      globals: { ...globals.browser, module: 'readonly', FarmPrefs: 'readonly', FarmEngine: 'readonly', FarmData: 'readonly' },
+      globals: { ...globals.browser, module: 'readonly', FarmPrefs: 'readonly', FarmRules: 'readonly', FarmData: 'readonly' },
     },
     rules: {
       'no-unused-vars': ['error', { args: 'none', caughtErrors: 'none' }],

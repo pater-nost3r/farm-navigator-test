@@ -1,0 +1,200 @@
+{
+  "version": 3,
+  "_about": "Farm Navigator game model. Every number that changes a game result lives here and is read by the server engine (app/services/engine.py) and the browser UI. These are GAME coefficients chosen for learning, not universal agronomic norms. See docs/MODEL.md.",
+
+  "data": {
+    "_about": "NASA POWER Daily Point API request settings.",
+    "parameters": ["T2M", "T2M_MAX", "T2M_MIN", "PRECTOTCORR", "RH2M", "WS2M", "ALLSKY_SFC_SW_DWN"],
+    "required_parameters": ["T2M", "T2M_MAX", "T2M_MIN", "PRECTOTCORR"],
+    "community": "AG",
+    "time_standard": "LST",
+    "archive_years": 20,
+    "first_year": 1981,
+    "data_lag_days": 7,
+    "max_missing_share": 0.1,
+    "min_period_days": 60,
+    "max_period_days": 240
+  },
+
+  "weather_thresholds": {
+    "_about": "Game thresholds for the weather features shown to the player. Not universal agronomic norms.",
+    "hot_day_tmax_c": 30,
+    "extreme_heat_tmax_c": 35,
+    "frost_tmin_c": 0,
+    "dry_day_precip_mm": 1,
+    "heavy_rain_day_mm": 20,
+    "windy_day_ws2m_m_s": 4
+  },
+
+  "anomaly": {
+    "_about": "A season is called anomalous only when compared with the other years of the same point and calendar window.",
+    "min_reference_years": 8,
+    "z_threshold": 1.0
+  },
+
+  "farm": {
+    "area_ha": 10,
+    "root_zone_m": 0.8,
+    "depletion_fraction_p": 0.5,
+    "fixed_costs": 1500,
+    "offseason_moisture_target": 60,
+    "offseason_mix": 0.5,
+    "reserve_refill_share": 0.2,
+    "reserve_cap_mm": 600,
+    "fallow_kc": 0.3,
+    "waterlog_share": 0.5
+  },
+
+  "soils": {
+    "_about": "Properties of the player's virtual farm soil. They are game-model inputs, NOT NASA POWER data: coordinates choose the weather series, not the soil.",
+    "sandy": { "awc_mm_per_m": 70,  "infiltration_mm_day": 60, "drainage_rate": 0.9, "saturation_extra_mm": 25, "water_erodibility": 0.5, "wind_erodibility": 1.0, "om_decay": 1.25 },
+    "loam":  { "awc_mm_per_m": 170, "infiltration_mm_day": 35, "drainage_rate": 0.5, "saturation_extra_mm": 40, "water_erodibility": 1.0, "wind_erodibility": 0.5, "om_decay": 1.0 },
+    "clay":  { "awc_mm_per_m": 190, "infiltration_mm_day": 15, "drainage_rate": 0.15, "saturation_extra_mm": 60, "water_erodibility": 0.6, "wind_erodibility": 0.2, "om_decay": 0.8 }
+  },
+
+  "crops": {
+    "_about": "gdd = growing degree days with (T2M_MAX+T2M_MIN)/2 clipped to [base, upper]. kc = FAO-56-style crop coefficients [initial, mid, end]. ky = FAO-33 yield response to water. humid_loss = yield share lost to foliar disease when mean RH2M reaches humid_full_rh. Yields and prices are game values for a 10 ha farm.",
+    "wheat":    { "family": "cereal", "gdd_base": 0,  "gdd_upper": 30, "gdd_need": 1450, "kc": [0.3, 1.15, 0.3],  "ky": 1.15, "heat_tmax_c": 30, "frost_tmin_c": -4, "wet_tolerance": 0.4, "humid_loss": 0.1, "n_need": 100, "n_residual": 0,  "residue_om": 0.03, "potential_t_ha": 4.0, "price_per_t": 230, "seed_cost": 1200 },
+    "maize":    { "family": "cereal", "gdd_base": 10, "gdd_upper": 30, "gdd_need": 1350, "kc": [0.3, 1.2, 0.5],   "ky": 1.25, "heat_tmax_c": 35, "frost_tmin_c": 0,  "wet_tolerance": 0.3, "humid_loss": 0.05, "n_need": 150, "n_residual": 0,  "residue_om": 0.04, "potential_t_ha": 9.0, "price_per_t": 180, "seed_cost": 2200 },
+    "sorghum":  { "family": "cereal", "gdd_base": 10, "gdd_upper": 32, "gdd_need": 1250, "kc": [0.3, 1.0, 0.55],  "ky": 0.9,  "heat_tmax_c": 38, "frost_tmin_c": 0,  "wet_tolerance": 0.5, "humid_loss": 0.05, "n_need": 90,  "n_residual": 0,  "residue_om": 0.03, "potential_t_ha": 5.0, "price_per_t": 170, "seed_cost": 900 },
+    "chickpea": { "family": "legume", "gdd_base": 3,  "gdd_upper": 30, "gdd_need": 1300, "kc": [0.4, 1.0, 0.35],  "ky": 0.85, "heat_tmax_c": 32, "frost_tmin_c": -2, "wet_tolerance": 0.1, "humid_loss": 0.3, "n_need": 25,  "n_residual": 35, "residue_om": 0.02, "potential_t_ha": 2.2, "price_per_t": 550, "seed_cost": 1600 }
+  },
+
+  "irrigation_methods": {
+    "_about": "efficiency = share of pumped water that reaches the root zone. Flood losses go mostly to deep drainage (leaching) and runoff; sprinkler losses are evaporation and wind drift.",
+    "flood":     { "efficiency": 0.6,  "setup_cost": 200,  "cost_per_mm": 1.5, "min_net_mm": 40, "loss_to_drainage": 0.7 },
+    "sprinkler": { "efficiency": 0.8,  "setup_cost": 700,  "cost_per_mm": 3.0, "min_net_mm": 0,  "loss_to_drainage": 0.1, "wind_loss_per_m_s": 0.03, "heat_loss_per_c": 0.01, "min_efficiency": 0.55 },
+    "drip":      { "efficiency": 0.92, "setup_cost": 1300, "cost_per_mm": 2.5, "min_net_mm": 0,  "loss_to_drainage": 0.5 }
+  },
+
+  "irrigation_intensity": {
+    "_about": "cap_mm = seasonal limit of pumped water; trigger/target = root-zone depletion as a share of total available water (0 = field capacity). Negative target over-fills the soil.",
+    "off":    { "cap_mm": 0,   "trigger": 1.0,  "target": 1.0 },
+    "low":    { "cap_mm": 150, "trigger": 0.75, "target": 0.4 },
+    "medium": { "cap_mm": 300, "trigger": 0.5,  "target": 0.0 },
+    "high":   { "cap_mm": 450, "trigger": 0.3,  "target": -0.1 }
+  },
+
+  "soil_care": {
+    "_about": "One practice per season. protection = share of erosion prevented; infiltration and evaporation are multipliers; om/n are added after the season.",
+    "none":       { "cost": 0,   "infiltration": 1.0,  "evaporation": 1.0,  "protection": 0.0, "om": 0.0,  "n": 0,  "recovery": 0,   "decay": 1.0, "mineralization": 1.0, "yield": 1.0,  "drainage_add": 0.0, "next_moisture": 0 },
+    "mulch":      { "cost": 400, "infiltration": 1.4,  "evaporation": 0.7,  "protection": 0.6, "om": 0.08, "n": 0,  "recovery": 1,   "decay": 1.0, "mineralization": 1.0, "yield": 1.0,  "drainage_add": 0.0, "next_moisture": 5 },
+    "cover_crop": { "cost": 450, "infiltration": 1.25, "evaporation": 1.0,  "protection": 0.5, "om": 0.1,  "n": 20, "recovery": 2,   "decay": 1.0, "mineralization": 1.0, "yield": 1.0,  "drainage_add": 0.0, "next_moisture": -10 },
+    "min_till":   { "cost": 150, "infiltration": 1.2,  "evaporation": 0.85, "protection": 0.4, "om": 0.03, "n": 0,  "recovery": 1,   "decay": 0.7, "mineralization": 0.9, "yield": 0.97, "drainage_add": 0.0, "next_moisture": 3 },
+    "drainage":   { "cost": 700, "infiltration": 1.0,  "evaporation": 1.0,  "protection": 0.0, "om": 0.0,  "n": 0,  "recovery": 0,   "decay": 1.0, "mineralization": 1.0, "yield": 1.0,  "drainage_add": 0.5, "next_moisture": -5 }
+  },
+
+  "yield_model": {
+    "_about": "Relative yield (0–100 % of the crop's game potential) is the product of these factors.",
+    "heat_loss_per_degree_day": 0.008,
+    "flowering_window": [0.45, 0.7],
+    "flowering_heat_weight": 1,
+    "other_heat_weight": 0.1,
+    "min_heat_factor": 0.3,
+    "frost_loss_per_day": 0.04,
+    "min_frost_factor": 0.1,
+    "waterlog_loss_per_day": 0.03,
+    "min_maturity_share": 0.5,
+    "n_base_share": 0.35,
+    "rotation_same_crop": 0.9,
+    "rotation_same_crop_twice": 0.8,
+    "rotation_same_family": 0.97,
+    "humid_disease_rh": 70,
+    "humid_full_rh": 85,
+    "humid_sprinkler_factor": 0.94,
+    "light_reference_mj": 16,
+    "light_weight": 0.3
+  },
+
+  "soil_model": {
+    "_about": "Nitrogen in kg N/ha, organic matter in %, erosion as a 0–100 index (higher = more topsoil lost).",
+    "mineralization_per_om": 15,
+    "reference_days": 120,
+    "leach_drainage_mm": 250,
+    "leachable_share": 0.6,
+    "max_leach_share": 0.6,
+    "cereal_residue_n": 5,
+    "om_decay_rate": 0.05,
+    "om_erosion_loss": 0.004,
+    "water_erosion_per_mm": 0.08,
+    "wind_erosion_per_day": 0.5,
+    "flood_erosion_per_mm": 0.02,
+    "n_max": 150,
+    "om_range": [0.3, 5.0],
+    "fertility_weights": { "n": 0.3, "om": 0.45, "erosion": 0.25 },
+    "fertility_n_full": 120,
+    "fertility_om_range": [0.5, 3.5]
+  },
+
+  "scoring": {
+    "water_efficiency_weight": 60,
+    "water_reserve_weight": 40,
+    "fail_yield_pct": 10
+  },
+
+  "what_if": {
+    "_about": "Alternatives change exactly ONE decision and keep the same field state and NASA weather.",
+    "acceptable_yield_drop_pp": 5,
+    "soil_yield_drop_pp": 10,
+    "min_yield_gain_pp": 3,
+    "min_profit_gain": 300,
+    "min_fertility_gain": 2,
+    "min_useful_gain_mm": 10
+  },
+
+  "levels": [
+    { "id": 1, "key": "firstHarvest", "seasons": 1, "weather": { "type": "any" },
+      "start": { "budget": 8000, "reserve_mm": 350, "soil": { "moisture": 60, "n": 70, "om": 2.2, "erosion": 15 }, "history": [] },
+      "economy": { "price": 1.0, "cost": 1.0 },
+      "goals": [ { "metric": "avg_yield", "op": ">=", "value": 50 } ],
+      "lose": [ { "metric": "min_yield", "op": "<", "value": 10 } ],
+      "stars": { "yield": 70, "water": 70, "soil": 0 } },
+    { "id": 2, "key": "waterShortage", "seasons": 1, "weather": { "type": "dry", "max_rain_share": 0.8 },
+      "start": { "budget": 8000, "reserve_mm": 120, "soil": { "moisture": 35, "n": 70, "om": 2.0, "erosion": 20 }, "history": ["wheat"] },
+      "economy": { "price": 1.0, "cost": 1.0 },
+      "goals": [ { "metric": "avg_yield", "op": ">=", "value": 40 }, { "metric": "reserve_end", "op": ">=", "value": 10 } ],
+      "lose": [ { "metric": "min_yield", "op": "<", "value": 10 } ],
+      "stars": { "yield": 60, "water": 75, "soil": 0 } },
+    { "id": 3, "key": "depletedSoil", "seasons": 2, "weather": { "type": "any" },
+      "start": { "budget": 9000, "reserve_mm": 300, "soil": { "moisture": 50, "n": 20, "om": 1.2, "erosion": 35 }, "history": ["wheat", "wheat"] },
+      "economy": { "price": 1.0, "cost": 1.0 },
+      "goals": [ { "metric": "fertility_delta", "op": ">=", "value": 5 }, { "metric": "avg_yield", "op": ">=", "value": 40 } ],
+      "lose": [],
+      "stars": { "yield": 60, "water": 70, "soil": 10 } },
+    { "id": 4, "key": "hotSeason", "seasons": 1, "weather": { "type": "hot", "min_hot_days": 20 },
+      "start": { "budget": 8000, "reserve_mm": 300, "soil": { "moisture": 50, "n": 70, "om": 2.0, "erosion": 20 }, "history": ["chickpea"] },
+      "economy": { "price": 1.0, "cost": 1.0 },
+      "goals": [ { "metric": "avg_yield", "op": ">=", "value": 45 } ],
+      "lose": [ { "metric": "min_yield", "op": "<", "value": 10 } ],
+      "stars": { "yield": 65, "water": 70, "soil": 0 } },
+    { "id": 5, "key": "rainySeason", "seasons": 1, "weather": { "type": "wet", "min_heavy_rain_days": 3, "min_rain_share": 1.25 },
+      "start": { "budget": 8000, "reserve_mm": 300, "soil": { "moisture": 70, "n": 70, "om": 2.0, "erosion": 25 }, "history": ["maize"] },
+      "economy": { "price": 1.0, "cost": 1.0 },
+      "goals": [ { "metric": "avg_yield", "op": ">=", "value": 45 }, { "metric": "erosion_delta", "op": "<=", "value": 2 } ],
+      "lose": [ { "metric": "min_yield", "op": "<", "value": 10 } ],
+      "stars": { "yield": 65, "water": 80, "soil": 2 } },
+    { "id": 6, "key": "economicCrisis", "seasons": 2, "weather": { "type": "any" },
+      "start": { "budget": 4500, "reserve_mm": 250, "soil": { "moisture": 50, "n": 60, "om": 1.8, "erosion": 20 }, "history": ["sorghum"] },
+      "economy": { "price": 0.8, "cost": 1.15 },
+      "goals": [ { "metric": "final_budget", "op": ">=", "value": 5500 } ],
+      "lose": [],
+      "stars": { "yield": 60, "water": 70, "soil": 0 } },
+    { "id": 7, "key": "climateChallenge", "seasons": 3, "weather": { "type": "any" },
+      "start": { "budget": 7000, "reserve_mm": 250, "soil": { "moisture": 45, "n": 50, "om": 1.8, "erosion": 25 }, "history": ["wheat"] },
+      "economy": { "price": 1.0, "cost": 1.0 },
+      "goals": [ { "metric": "avg_yield", "op": ">=", "value": 50 }, { "metric": "min_yield", "op": ">=", "value": 25 }, { "metric": "fertility_delta", "op": ">=", "value": 0 }, { "metric": "final_budget", "op": ">=", "value": 7000 } ],
+      "lose": [],
+      "stars": { "yield": 65, "water": 70, "soil": 5 } }
+  ],
+
+  "presets": [
+    { "id": "almaty",  "latitude": 43.6,  "longitude": 77.0,   "start_md": "04-20", "end_md": "08-31", "soil": "loam" },
+    { "id": "kansas",  "latitude": 38.84, "longitude": -97.61, "start_md": "04-15", "end_md": "09-15", "soil": "loam" },
+    { "id": "kherson", "latitude": 46.64, "longitude": 32.61,  "start_md": "04-15", "end_md": "08-31", "soil": "loam" },
+    { "id": "punjab",  "latitude": 30.9,  "longitude": 75.85,  "start_md": "06-15", "end_md": "10-15", "soil": "loam" },
+    { "id": "nile",    "latitude": 30.8,  "longitude": 31.0,   "start_md": "11-01", "end_md": "04-15", "soil": "clay" },
+    { "id": "wagga",   "latitude": -35.1, "longitude": 147.4,  "start_md": "05-15", "end_md": "11-30", "soil": "loam" },
+    { "id": "parana",  "latitude": -24.0, "longitude": -51.5,  "start_md": "10-15", "end_md": "02-28", "soil": "clay" },
+    { "id": "nakuru",  "latitude": -0.3,  "longitude": 36.1,   "start_md": "03-15", "end_md": "07-31", "soil": "sandy" }
+  ]
+}

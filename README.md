@@ -1,12 +1,24 @@
 # Farm Navigator
 
-An educational farming game for the NASA Space Apps Challenge. You pick a real farm location. The game
-downloads the last 10 growing seasons recorded there by **NASA POWER** and replays them as 7 levels. Each season you
-choose a crop, irrigation, fertilizer and soil protection. You then see the effect on yield, budget, water and soil,
-with every result explained through the NASA data.
+An educational farming strategy game built on **real historical NASA POWER daily weather**.
 
-> NASA POWER data are **historical records of past seasons**, not a weather forecast. Farm Navigator uses a
-> simplified, deterministic crop model. It is not a yield forecast or farming advice.
+You set up a virtual farm: a real place (a ready-made region, a city search or coordinates), a growing period and a
+soil type. The server downloads the daily NASA POWER series for that point and calendar window in each of the last 20
+complete years. You then play 7 levels. In each season you choose four things:
+- a crop;
+- an irrigation system;
+- how much water to use;
+- a soil-care practice.
+
+The server simulates the season day by day, deterministically, and reports the results with their causes:
+- yield;
+- money;
+- water reserve;
+- soil state.
+
+> NASA POWER data are **historical records** for a regional grid cell, not measurements at a field and not a forecast.
+> The soil type, nitrogen, organic matter, erosion, prices, costs and yields are **game-model values**. Farm Navigator
+> is not a yield forecast or farming advice.
 
 ## Quick start
 
@@ -20,192 +32,182 @@ npm install                              # dev tools only: eslint, typescript, j
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://127.0.0.1:8000. The same server serves the game and the API.
-Swagger UI: http://127.0.0.1:8000/docs.
+Open http://127.0.0.1:8000. The same server serves the game and the API; Swagger UI is at
+http://127.0.0.1:8000/docs.
 
-If you open `farm-navigator.html` directly as a file, there is no API. The game says so and offers clearly labelled
-demo data.
+The game needs its server: every season is simulated there. Opened as a plain file, the page shows a "no game server"
+screen.
 
-`.env` is optional (see `.env.example`). NASA POWER and the geocoder need no API key. `NASA_API_KEY` is never sent
-to the frontend, returned or logged.
+`.env` is optional (see `.env.example`). NASA POWER and the geocoder need no key, and `NASA_API_KEY` is never sent
+anywhere.
 
 ## Checks
 
 | Command | What it does |
 |---|---|
 | `npm run lint` | ESLint for `js/`, `tests/`, `scripts/` |
-| `npm run typecheck` | TypeScript `checkJs` on the game engine and data client (JSDoc types) |
-| `npm test` | Node tests: engine, data client, translations, jsdom UI playthrough of all 7 levels |
+| `npm run typecheck` | TypeScript `checkJs` on `js/rules.js` and `js/nasa-client.js` |
+| `npm test` | Node tests: API client, UI rules, translations, and jsdom integration tests described below |
 | `npm run build` | Production build into `dist/` |
 | `npm run check` | All four above |
-| `ruff check .` · `mypy` · `pytest` | Python lint, typecheck, tests |
+| `ruff check .` · `mypy` · `pytest` | Python lint, typecheck, tests (weather, POWER client, engine, API) |
+
+The integration tests in `tests/ui.test.mjs` work like this:
+- They start the real FastAPI server with the project's Python and point `NASA_POWER_BASE_URL` to a fake POWER
+  endpoint.
+- They play the page by clicking.
+- They are skipped, with a message, if Python with the backend requirements is not installed.
 
 ## Architecture
 
 ```
-farm-navigator.html   page: markup, CSS, EN/RU translations, language/theme prefs
-js/engine.js          game engine: pure, deterministic, no DOM (levels, formulas, What If, scoring, progress)
-js/nasa-client.js     data client: calls OUR backend, localStorage cache, Live/Cached/Demo, timeouts, offline
-js/app.js             UI controller: screens, rendering, events
-app/                  FastAPI backend
-  api/nasa.py         GET /api/nasa/climate, GET /api/nasa/conditions
-  api/geocode.py      GET /api/geocode (city → coordinates)
-  api/game.py         earlier stateful 3-season API (kept, unchanged)
-  services/nasa_power.py  NASA POWER client, per-season aggregation, TTL cache
-  services/geocoding.py   Open-Meteo geocoding client
-api/index.py          Vercel serverless entry (imports app.main:app)
-scripts/build.mjs     static build → dist/
-tests/                Node tests + real NASA POWER fixtures (6 locations)
-app/tests/            pytest
+farm-navigator.html        page: markup, CSS, EN/RU translations, language/theme preferences
+js/nasa-client.js          API client: timeouts, one retry, typed errors (offline/timeout/nasa/server/no-backend)
+js/rules.js                interface rules from the server config: required decisions, plan cost, progress
+js/app.js                  UI controller: screens, rendering, events (no game simulation in the browser)
+app/data/game_model.json   ALL rules and coefficients (crops, soils, irrigation, care, thresholds, levels)
+app/services/nasa_power.py NASA POWER client: retry with deadline, memory + disk cache, stale fallback
+app/services/weather.py    daily series → seasons: gaps, features, FAO-56 ET0, reference, anomalies, season names
+app/services/climate.py    20-year archive for one point and window; provenance
+app/services/engine.py     authoritative game engine: daily water balance, soil, economy, levels, What If
+app/api/nasa.py            GET /api/nasa/archive
+app/api/game.py            GET /api/game/config, POST /api/game/start | turn | what-if
+app/api/geocode.py         GET /api/geocode (city → coordinates, Open-Meteo)
+api/index.py               Vercel serverless entry (imports app.main:app)
+docs/MODEL.md              the game model, every formula, threshold and assumption
 ```
 
-The browser never calls NASA directly. Data flow:
-**browser → `/api/nasa/climate` → NASA POWER**.
+**Data flow:** browser → our API → NASA POWER. The browser never calls NASA directly.
 
-Results are cached in three layers:
-1. Server memory, with a 24 h TTL.
-2. The CDN, via `Cache-Control: s-maxage=86400` (past seasons never change).
-3. The browser's localStorage: used without a network request for 7 days, and as a fallback when offline.
+**The server is authoritative.** Game requests are stateless:
+- Each request carries the farm, the start year and all decisions so far.
+- The server replays them from the level start with the same NASA data.
+- So budget, water and soil can only change through the published rules.
 
-### Data status shown in the game
+The server validates everything again:
+- every decision is required;
+- the plan must fit the budget, with the water bill reserved at its maximum;
+- irrigating with an empty reserve is refused.
 
-| Badge | Meaning |
-|---|---|
-| **Live · NASA POWER** | Downloaded from NASA POWER for this request |
-| **Cached** | Real NASA POWER data from the server cache or this browser (stale copies say so) |
-| **Demo data** | Illustrative values the player chose when no data were available; never presented as real |
+Budget and reserve therefore never go negative. The interface runs the same checks from the same config first.
 
-Error states (each with **Try again**, **Play with demo data** and **Change location**):
-- offline
-- NASA timeout (504)
-- NASA unavailable (502)
-- server unreachable
-- no game server (page opened as a file)
-- unexpected data
+## NASA POWER
 
-## NASA data sources
+Daily Point API, one request per point and window, with the parameters, units and fill value checked against the
+response metadata:
 
-**NASA POWER** daily point API, `community=AG`:
-`https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M,PRECTOTCORR,RH2M,WS2M,ALLSKY_SFC_SW_DWN&community=AG&latitude=…&longitude=…&start=YYYYMMDD&end=YYYYMMDD&format=JSON`
+```
+https://power.larc.nasa.gov/api/temporal/daily/point?parameters=T2M,T2M_MAX,T2M_MIN,PRECTOTCORR,RH2M,WS2M,ALLSKY_SFC_SW_DWN&community=AG&latitude=…&longitude=…&start=YYYYMMDD&end=YYYYMMDD&format=JSON&time-standard=LST
+```
 
-| Parameter | Meaning | Used for |
+| Parameter | Units (from the response) | Used for |
 |---|---|---|
-| `T2M` | Air temperature at 2 m, °C | crop temperature range, water demand, heat events, hot days |
-| `PRECTOTCORR` | Corrected precipitation, mm/day | rain supply, runoff, leaching, erosion, drought/downpour events, reservoir refill |
-| `RH2M` | Relative humidity at 2 m, % | water demand (dry air), fungal disease risk |
-| `WS2M` | Wind speed at 2 m, m/s | water demand, sprinkler losses, wind erosion |
-| `ALLSKY_SFC_SW_DWN` | All-sky surface shortwave radiation, MJ/m²/day | photosynthesis limit, water demand |
+| `T2M` | C | mean temperature, organic-matter decay, mineralisation |
+| `T2M_MAX` / `T2M_MIN` | C | degree days (maturity), heat stress, frost, hot days, ET0 |
+| `PRECTOTCORR` | mm/day | rain, downpours, dry spells, runoff, drainage, leaching, erosion, reserve refill |
+| `RH2M` | % | ET0, leaf-disease risk |
+| `WS2M` | m/s | ET0, sprinkler losses, wind erosion |
+| `ALLSKY_SFC_SW_DWN` | MJ/m^2/day | ET0, light limit |
 
-How the data are prepared:
-- **One request** covers the 10 most recent complete growing seasons: May–Aug in the northern hemisphere,
-  Nov–Feb in the southern.
-- A season counts only if it ended at least 14 days ago, because POWER publishes with a short delay.
-- `-999` fill values are skipped. A season with more than 20% missing values is dropped.
-- Daily values become per-season means. Rain is summed, and the total is rescaled if a few days are missing.
-- Derived per season: heavy-rain days (≥ 20 mm), hot days (daily mean ≥ 25 °C) and the longest dry spell (< 1 mm).
-- The mean of the 10 seasons is the "normal" each season is compared with.
+**Time standard.** `time-standard=LST` (local solar time) is used for every request.
 
-**Limitation:** POWER values describe a grid cell tens of kilometres wide, built from satellites and reanalysis
-models. They are not field measurements.
+**Missing data.**
+- `-999` and missing days are reported as gaps.
+- A season with more than 10 % missing values in a required parameter is incomplete and cannot be played; the API
+  suggests a complete year.
+- A missing optional parameter switches off the mechanics that depend on it, and ET0 falls back to Hargreaves. The
+  source is labelled.
+- If a parameter's units differ from the expected ones, it is treated as unavailable.
 
-City search uses the **Open-Meteo Geocoding API** (GeoNames, no key). Coordinates can also be entered by hand, and six
-example farms work without it.
+**Recent years.** If the chosen window has not ended at least 7 days ago, that year is not offered. The API suggests
+the latest complete season.
+
+**Hemispheres.** Season names follow the hemisphere: June–August is summer in the north and winter in the south. Near
+the equator the season is called "tropical".
+
+**What each response carries:**
+- parameters with units and long names;
+- coordinates and the cell elevation;
+- dates;
+- time standard and community;
+- status `live` / `cached` / `demo` and the `stale` flag;
+- fetch time;
+- the full request URL;
+- per-season gaps.
+
+**Cache and fallback** (`app/services/nasa_power.py`):
+1. A fresh cache entry in memory or on disk (default 30 days) is used first → `cached`.
+2. Otherwise NASA POWER is called, with a 15 s timeout per attempt, 2 retries with backoff and a 24 s deadline →
+   `live`, and the result is cached.
+3. If POWER fails, an expired cache entry is used → `cached` + `stale`.
+4. With no cache at all, the API returns 502/504. The game shows the error with *Try again*. Demo mode (synthetic,
+   labelled) starts only when the player chooses it.
+
+On Vercel the disk cache lives in `/tmp` while the instance is warm.
 
 ## Levels
 
-Each level replays real seasons chosen from the location's 10-season record: the most *typical*, *driest*, *hottest*
-or *wettest*, or the most *recent*. When a level has several seasons they are distinct and in chronological order.
-Levels unlock in order. Best results are saved in localStorage (`farm-navigator.progress.v1`).
+Every level has:
+- a goal;
+- a starting state;
+- an allowed weather situation;
+- win and lose conditions;
+- three star criteria: yield, water saving and soil health.
 
-| # | Level | Seasons | Start | Goal (all must be met) |
-|---|---|---|---|---|
-| 1 | First Harvest | typical | $6,000, water 100% | average yield ≥ 60% |
-| 2 | Water Shortage | driest | $6,000, water 35% | yield ≥ 50%, reserve ≥ 5 at the end |
-| 3 | Depleted Soil | 2 recent | $7,000, N 15, after wheat → wheat | soil fertility +10, yield ≥ 45% |
-| 4 | Heatwave | hottest | $6,000, water 70% | yield ≥ 60% |
-| 5 | Season of Downpours | wettest | $6,000, water 80% | yield ≥ 55%, erosion ≤ +5, N leached ≤ 10 kg |
-| 6 | Economic Crisis | 2 recent | $2,200 | finish with ≥ $3,000 |
-| 7 | Climate Challenge | driest + hottest + wettest | $5,000, water 60% | yield ≥ 55%, no season < 30%, fertility ≥ start, budget ≥ $5,000 |
+The player chooses the year among those that fit. The rules are in `app/data/game_model.json` and summarised in
+[docs/MODEL.md](docs/MODEL.md).
 
-- **Lose:** miss a goal, or end a season with less than $800 (not enough to buy seed = bankrupt).
-- **Stars (1–3, only when the level is passed):** one per category met.
-  - Yield: average yield above the level's threshold.
-  - Water saving: water score ≥ 70 (65 in level 7).
-  - Soil health: fertility change at or above the level's threshold.
-- The tests check that every level is winnable at all 6 real fixture locations and the demo data, and that careless
-  play fails most level/location pairs.
+| # | Level | Seasons | Weather situation |
+|---|---|---|---|
+| 1 | First harvest | 1 | any |
+| 2 | Water shortage | 1 | dry: rain ≤ 80 % of the same window's reference |
+| 3 | Depleted soil | 2 in a row | any |
+| 4 | Hot season | 1 | ≥ 20 days with T2M_MAX ≥ 30 °C (game threshold) |
+| 5 | Downpour season | 1 | ≥ 3 days ≥ 20 mm, or rain ≥ 125 % of the reference |
+| 6 | Economic crisis | 2 in a row | any; prices −20 %, costs +15 % |
+| 7 | Climate challenge | 3 in a row | any |
 
-## Game model (`js/engine.js`)
+"Anomalous" (hotter, drier, wetter than usual) is shown only after comparing the season with the other years of the
+same point and window, and only if at least 8 years are available.
 
-All formulas are deterministic, with no randomness. The constants are in `MODEL`, `CROPS`, `IRRIGATION`,
-`FERTILIZERS`, `PROTECTION` and `LEVELS`.
+The best result per level is stored in the browser. Passing a level unlocks the next one, and every level can be
+replayed.
 
-- **Water demand (mm)** = crop need × weather factor × days/123 × protection factor.
-  - Weather factor = 1 + 0.025·(T−20) + 0.004·(60−RH) + 0.04·(WS−2) + 0.01·(SW−20), clamped to 0.7–1.6.
-  - Protection factor: mulch 0.92, cover strips 1.03.
-- **Water supply** = rain − runoff + stored soil water (moisture% × 120 mm) + irrigation × (1 − loss).
-  - Runoff = 10 mm per heavy-rain day × (1 − protection), capped at 40% of rain.
-  - Loss: sprinkler 8–30% (grows with heat and wind), drip 5%.
-- **Water score** = 100 inside supply/demand 0.95–1.45.
-  - Below that, it drops by (180 − 120 × drought tolerance) per unit of deficit.
-  - Above that, waterlogging penalties apply.
-- **Nitrogen:** available = 0.6 × soil N + fertilizer N − leaching.
-  - Leaching share = 0.04 × heavy-rain days + 0.5 × max(0, ratio − 1.2), up to 60%.
-  - Synthetic N leaches fully, compost at 20%, green manure at 30%.
-  - Chickpea fixes 30 kg × yield.
-- **Temperature:** −8 points per °C above the crop's range, −6 per °C below it.
-- **Light:** −5 points per MJ below 15 MJ/m²/day.
-- **Rotation and disease:**
-  - Planting the same crop again adds +25 disease risk (+10 for a third time, +10 for a legume after a legume).
-  - The same crop family adds +8. Humid, warm air (RH > 70%, T > 18 °C) adds +15. Waterlogging adds +10.
-  - Yield loss = (risk − 20) × 0.5.
-  - A cereal after a legume gets a +6 bonus. Any other rotation gets +2.
-- **Yield %** = 0.45 water + 0.25 nitrogen + 0.2 temperature + 0.1 light + rotation bonus − disease + (fertility − 50)/5.
-- **Soil after the season:**
-  - Moisture follows the water balance.
-  - Nitrogen: + fertilizer + fixation + mineralisation − uptake − leaching.
-  - Organic matter: + compost/green manure/protection − decomposition − erosion.
-  - Erosion: + heavy rain × crop cover × (1 − protection) + wind erosion − recovery.
-- **Fertility** = 0.4 N + 0.35 organic matter + 0.25 (100 − erosion).
-- **Money and water:**
-  - Cost = seed + irrigation + drip + fertilizer + protection. A plan is refused if it costs more than the budget,
-    so the budget never goes negative.
-  - Revenue = crop price × yield %.
-  - Reserve refill = rain ÷ 12 (max 35). Irrigation is refused if the reserve is too small, and the reserve is kept
-    within 0–100.
-- **Events** are flagged from the data compared with the 10-season normal:
-  - Drought: rain ≤ 70% of normal, or < 25 mm per 30 days.
-  - Heat: ≥ 1 °C above normal, or ≥ 28 °C.
-  - Downpours: ≥ 5 heavy-rain days, or rain ≥ 135% of normal.
-  - Water deficit: drought or heat while the reserve is below 40%.
-- **Best alternative and What If:** a beam search (width 12) over all 336 decision combinations for the remaining
-  seasons, ranked by the level's goals, stars, score and profit. What If simulates any alternative for the same season
-  without touching saved progress.
+## What If and reports
+
+**What If.** After each season the server replays it with exactly **one** decision changed. The starting field state
+and the NASA weather stay the same. It picks alternatives by stated criteria:
+- saves water with yield within 5 pp;
+- more crop from the same water;
+- higher yield;
+- better soil with yield within 10 pp;
+- more profit.
+
+It never calls one strategy best for every goal. The player can also try any single change.
+
+**Season report.** Each report shows:
+- the period and data status;
+- the decisions;
+- resource changes;
+- a daily chart of rain, irrigation and root-zone water;
+- every cause labelled **NASA data / Your decision / Model / Assumption**, with the yield points it cost;
+- the model's limitations.
+
+**Level and farm reports** add goals, stars, totals and data provenance, and can be exported as JSON.
 
 ## Deploy to Vercel
 
-`vercel.json` builds the static game with `node scripts/build.mjs` (no npm install needed) into `dist/`. It deploys
-`api/index.py` as a Python serverless function that runs FastAPI; `requirements.txt` holds the runtime dependencies.
-Every `/api/*` request is rewritten to that function. `.vercelignore` keeps `.env`, virtual environments and tests
-out of the upload.
+`vercel.json` works as follows:
+- It builds the static game with `node scripts/build.mjs` into `dist/`.
+- It deploys `api/index.py` (FastAPI) as a Python function, including `app/**` with `game_model.json`.
+- It rewrites `/api/*` to that function.
 
-```bash
-npm i -g vercel && vercel        # then: vercel --prod
-```
+`.vercelignore` keeps `.env`, virtual environments and tests out of the upload.
 
-Optional environment variables in the Vercel project:
-- `NASA_TIMEOUT_SECONDS` (default 20)
-- `CACHE_TTL_SECONDS` (default 86400)
-- `CORS_ORIGINS` (only needed if the frontend is hosted on another origin; set `window.FARM_API_BASE` in that case)
-
-## Other API endpoints
-
-The earlier stateful 3-season API still works. It keeps games in server memory, so it suits local use and is not
-used by the level-based game:
-- `POST /api/game/start`
-- `POST /api/game/decision`
-- `GET /api/game/{id}`
-- `POST /api/game/{id}/next-season`
-- `GET /api/game/{id}/results`
-
-Its formulas are in `app/services/game_engine.py`.
+Optional environment variables:
+- `NASA_TIMEOUT_SECONDS` (default 15)
+- `NASA_RETRIES` (default 2)
+- `NASA_DEADLINE_SECONDS` (default 24)
+- `CACHE_TTL_SECONDS` (default 30 days)
+- `CACHE_DIR`
+- `CORS_ORIGINS`
