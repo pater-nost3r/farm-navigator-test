@@ -1,0 +1,29 @@
+[project]
+name = "farm-navigator"
+version = "2.0.0"
+description = "Educational farming game built on NASA POWER data (NASA Space Apps Challenge)"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["app/tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = [".venv", "node_modules", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC"]
+ignore = [
+  "B008",   # FastAPI Depends()/Query() defaults are idiomatic
+  "UP042",  # keep (str, Enum): values serialise the same in pydantic and JSON
+  "UP046",  # Generic[...] reads clearer than PEP 695 syntax for contributors
+]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["app", "api"]
+ignore_missing_imports = true
+check_untyped_defs = true
+warn_unused_ignores = true

@@ -22,6 +22,8 @@ DEFAULT_CORS_ORIGINS = (
     "http://127.0.0.1:4321",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
 )
 
 
@@ -31,6 +33,10 @@ class Settings:
     nasa_api_key: str | None = field(default=None, repr=False)
     nasa_power_base_url: str = "https://power.larc.nasa.gov/api/temporal/daily/point"
     nasa_timeout_seconds: float = 20.0
+    geocoding_base_url: str = "https://geocoding-api.open-meteo.com/v1/search"
+    geocoding_timeout_seconds: float = 8.0
+    # Historical NASA POWER seasons do not change, so results can be cached for a day.
+    cache_ttl_seconds: float = 24 * 3600
     cors_origins: tuple[str, ...] = DEFAULT_CORS_ORIGINS
 
 
@@ -46,5 +52,7 @@ def get_settings() -> Settings:
         nasa_api_key=os.getenv("NASA_API_KEY") or None,
         nasa_power_base_url=os.getenv("NASA_POWER_BASE_URL", Settings.nasa_power_base_url),
         nasa_timeout_seconds=float(os.getenv("NASA_TIMEOUT_SECONDS", Settings.nasa_timeout_seconds)),
+        geocoding_base_url=os.getenv("GEOCODING_BASE_URL", Settings.geocoding_base_url),
+        cache_ttl_seconds=float(os.getenv("CACHE_TTL_SECONDS", Settings.cache_ttl_seconds)),
         cors_origins=_parse_origins(os.getenv("CORS_ORIGINS")),
     )

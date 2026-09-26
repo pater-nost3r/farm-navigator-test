@@ -292,7 +292,9 @@ def play_season(state: GameState, decision: Decision) -> tuple[GameState, Season
     elif rain_30 >= need:
         explanation.append("Rainfall alone already covered the crop's water need, so irrigation was not necessary.")
     else:
-        explanation.append(f"{decision.irrigation.value.capitalize()} irrigation closed the gap between rainfall and crop need.")
+        explanation.append(
+            f"{decision.irrigation.value.capitalize()} irrigation closed the gap between rainfall and crop need."
+        )
     overwater_damage = OVERWATER_CROP_DAMAGE if overwatered else 0
 
     # Temperature and sunlight
@@ -468,9 +470,16 @@ def build_lessons(state: GameState) -> list[str]:
     def any_record(predicate) -> bool:
         return any(predicate(r) for r in history)
 
-    if any_record(lambda r: r.event.type == "drought" and r.decision.irrigation == Irrigation.NONE and r.water_balance.coverage_percent < 90):
+    if any_record(
+        lambda r: r.event.type == "drought"
+        and r.decision.irrigation == Irrigation.NONE
+        and r.water_balance.coverage_percent < 90
+    ):
         lessons.append("When NASA rainfall data show a drought risk, some irrigation protects the crop.")
-    if any_record(lambda r: r.water_balance.coverage_percent > OVERWATER_RATIO * 100 and r.decision.irrigation != Irrigation.NONE):
+    if any_record(
+        lambda r: r.water_balance.coverage_percent > OVERWATER_RATIO * 100
+        and r.decision.irrigation != Irrigation.NONE
+    ):
         lessons.append("Check rainfall before irrigating: more water than the crop needs is wasted and harms soil.")
     if any_record(lambda r: r.event.type in ("heatwave", "cold_stress")):
         lessons.append("Match crops to the season's temperature: each crop has a comfortable range.")
@@ -486,6 +495,7 @@ def build_lessons(state: GameState) -> list[str]:
     if state.budget < state.starting_budget:
         lessons.append("Inputs cost money: balance spending on water and fertilizer against expected harvest.")
     lessons.append(
-        "NASA POWER data describe regional climate, not your exact field: farmers combine satellite data with local observations."
+        "NASA POWER data describe regional climate, not your exact field: "
+        "farmers combine satellite data with local observations."
     )
     return lessons

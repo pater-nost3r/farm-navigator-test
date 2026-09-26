@@ -3,11 +3,11 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.models.game import (
+    Changes,
     ClimateConditions,
     ClimateReport,
     Coordinates,
     Decision,
-    Changes,
     Difficulty,
     Economics,
     Event,
