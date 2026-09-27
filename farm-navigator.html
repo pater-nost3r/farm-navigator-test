@@ -6,6 +6,7 @@
 <title>Farm Navigator</title>
 <meta name="description" content="An educational farming strategy game on real historical NASA POWER weather data.">
 <meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%231E4D35%27/%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2710%27 fill=%27none%27 stroke=%27%239FD39A%27 stroke-width=%272.4%27/%3E%3Cpath d=%27M16 8l3 8-3 8-3-8z%27 fill=%27%23FFD35C%27/%3E%3C/svg%3E">
 <meta name="theme-color" content="#FBF6EC">
 <script id="prefs-core">
 /* =========================================================
@@ -945,6 +946,25 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
 .field-ndvi small{display:block}
 @media (max-width:860px){ .soil-pick{grid-template-columns:1fr} }
 @media (max-width:560px){ .method.three{grid-template-columns:1fr} .why .pb{min-width:0} }
+
+/* ---------- Layout fixes found in a real browser ---------- */
+/* .topbar has grid-area:top for the game grid; on grid pages it must stay a normal row */
+.page > .topbar{grid-area:auto}
+/* The NASA header: title and period get the full width, the status badge goes below */
+.nasa-head{flex-wrap:wrap}
+.nasa-head > div:nth-child(2){flex:1 1 150px;min-width:0}
+.nasa-head .status{margin-left:0;flex:0 1 auto}
+/* On wide screens the field stays in view instead of stretching to the side panels */
+@media (min-width:1181px){
+  .stage{align-self:start;position:sticky;top:16px;height:min(720px,calc(100vh - 32px))}
+}
+[data-theme="dark"] .stage[data-weather="heat"] .haze{opacity:.35}
+/* Meter values like "350 mm" or "$10,456" must not widen the grid past the phone screen */
+.meters{grid-template-columns:repeat(5,minmax(0,1fr))}
+.meter{min-width:0}
+.meter .val b{overflow:hidden;text-overflow:ellipsis}
+@media (max-width:860px){ .meters{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:720px){ .meters{grid-template-columns:repeat(2,minmax(0,1fr))} }
 </style>
 </head>
 <body>
@@ -1668,6 +1688,10 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
   "meters.moisture": "Soil water",
   "meters.water": "Water reserve",
   "meters.budget": "Budget",
+  "unit.mm": "mm",
+  "unit.kg": "kg",
+  "unit.ms": "m/s",
+  "unit.mj": "MJ/m²/day",
   "units.mm": "{{n}} mm",
   "units.kgN": "{{n}} kg N/ha",
   "units.pp": "pp",
@@ -2303,6 +2327,10 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
   "meters.moisture": "Вода в почве",
   "meters.water": "Запас воды",
   "meters.budget": "Бюджет",
+  "unit.mm": "мм",
+  "unit.kg": "кг",
+  "unit.ms": "м/с",
+  "unit.mj": "МДж/м²/день",
   "units.mm": "{{n}} мм",
   "units.kgN": "{{n}} кг N/га",
   "units.pp": "п. п.",

@@ -26,6 +26,7 @@ function t(key, vars){
   return vars ? s.replace(/\{\{(\w+)\}\}/g, (m,k)=> k in vars ? vars[k] : m) : s;
 }
 const has = key => I18N.en[key] != null;
+const U = unit => t(`unit.${unit}`);
 const locale = ()=> LANG==='ru' ? 'ru-RU' : 'en-US';
 const num = (n, d=0) => Number(n).toLocaleString(locale(), { minimumFractionDigits:d, maximumFractionDigits:d });
 const dec = (n, d=2) => num(n, d);
@@ -660,7 +661,7 @@ function renderBrief(){
   const sel = brief.year !== null ? seasonByYear(brief.year) : null;
   const yearBtn = y => { const s = seasonByYear(y), f = s.features;
     return `<button class="year${y===brief.year?' on':''}" type="button" data-year="${y}" aria-pressed="${y===brief.year}">
-      <b>${esc(yearLabel(y, s.start, s.end))}</b><small>${num(f.rain_total_mm)} mm · ${esc(t('brief.hotShort', { n:f.hot_days }))} · ${esc(t('brief.heavyShort', { n:f.heavy_rain_days }))}</small></button>`; };
+      <b>${esc(yearLabel(y, s.start, s.end))}</b><small>${num(f.rain_total_mm)} ${U('mm')} · ${esc(t('brief.hotShort', { n:f.hot_days }))} · ${esc(t('brief.heavyShort', { n:f.heavy_rain_days }))}</small></button>`; };
   const loses = [...level.lose.map(l=>t(`lose.${l.metric}`, { value: goalValue(l.metric, l.value) })), ...(level.seasons>1 ? [t('lose.bankrupt')] : []), t('lose.goals')];
   $('brief').innerHTML = `
     <div class="eyebrow">${esc(t('brief.eyebrow', { n:level.id, total:model.levels.length }))}</div>
@@ -846,8 +847,8 @@ function renderData(){
   const rainMax = Math.max(100, Math.ceil(Math.max(f.rain_total_mm, (refMean('rain_total_mm')||0)*1.6)/100)*100);
   const hotMax = Math.max(20, f.days || s.days);
   let html =
-    item('rain','#1E6FD9',t('data.rain'),num(f.rain_total_mm),'mm',vsRef(f.rain_total_mm,'rain_total_mm',' mm'),
-      gauge(f.rain_total_mm,0,rainMax,refMean('rain_total_mm'),'linear-gradient(90deg,#E9D6B4,#9CC6EE 55%,#1E6FD9)',['0',num(rainMax/2),`${num(rainMax)} mm`]),
+    item('rain','#1E6FD9',t('data.rain'),num(f.rain_total_mm),U('mm'),vsRef(f.rain_total_mm,'rain_total_mm',' '+U('mm')),
+      gauge(f.rain_total_mm,0,rainMax,refMean('rain_total_mm'),'linear-gradient(90deg,#E9D6B4,#9CC6EE 55%,#1E6FD9)',['0',num(rainMax/2),`${num(rainMax)} ${U('mm')}`]),
       t('data.src.rain', { heavy:th.heavy_rain_day_mm }))+
     item('thermo','#D0632A',t('data.hotDays', { t:th.hot_day_tmax_c }),num(f.hot_days),t('data.unit.days'),vsRef(f.hot_days,'hot_days',''),
       gauge(f.hot_days,0,hotMax,refMean('hot_days'),'linear-gradient(90deg,#9CD58A,#F3C04E 50%,#E0602F)',['0',num(hotMax/2),num(hotMax)]),
@@ -860,9 +861,9 @@ function renderData(){
       t('data.src.temp', { max:dec1(f.tmax_mean_c), min:dec1(f.tmin_mean_c), frost:f.frost_days }));
   html += `<div class="datum mini">${[
     ['humid', t('data.rh'), f.rh_mean_pct===null ? t('data.unavailable') : `${num(f.rh_mean_pct)} %`, 'RH2M'],
-    ['wind', t('data.wind'), f.ws_mean_m_s===null ? t('data.unavailable') : `${dec1(f.ws_mean_m_s)} m/s · ${t('data.windyDays', { n:f.windy_days })}`, 'WS2M'],
-    ['sun', t('data.solar'), f.solar_mean_mj_m2_day===null ? t('data.unavailable') : `${dec1(f.solar_mean_mj_m2_day)} MJ/m²/day`, 'ALLSKY_SFC_SW_DWN'],
-    ['drop', t('data.et0'), `${num(f.et0_total_mm)} mm`, t('data.et0Source', { method: s.et0_method })],
+    ['wind', t('data.wind'), f.ws_mean_m_s===null ? t('data.unavailable') : `${dec1(f.ws_mean_m_s)} ${U('ms')} · ${t('data.windyDays', { n:f.windy_days })}`, 'WS2M'],
+    ['sun', t('data.solar'), f.solar_mean_mj_m2_day===null ? t('data.unavailable') : `${dec1(f.solar_mean_mj_m2_day)} ${U('mj')}`, 'ALLSKY_SFC_SW_DWN'],
+    ['drop', t('data.et0'), `${num(f.et0_total_mm)} ${U('mm')}`, t('data.et0Source', { method: s.et0_method })],
   ].map(([ic,l,v,code])=>`<div class="mrow">${IC[ic]}<span>${esc(l)}</span><b>${esc(v)}</b><small>${esc(code)}</small></div>`).join('')}</div>`;
   $('data-list').innerHTML = html;
   const gapCount = Object.values(s.gaps).reduce((a,g)=>a+g.length, 0);
@@ -905,7 +906,7 @@ function renderMeters(deltas){
   $('meters').innerHTML = METERS.map(M=>{
     const v = vals[M.key];
     const shown = v===null ? '—' : M.key==='budget' ? fmt$(v) : num(v);
-    const unit = { yield:'%', fertility:'/100', moisture:'%', water:' mm', budget:'' }[M.key];
+    const unit = { yield:'%', fertility:'/100', moisture:'%', water:' '+U('mm'), budget:'' }[M.key];
     const pct = M.key==='budget' ? Math.max(0, Math.min(100, v/15000*100)) : M.key==='water' ? v/cap*100 : (v ?? 0);
     const col = M.key==='budget' ? 'var(--amber-500)' : M.key==='water' ? 'var(--nasa-500)' : barColor(v ?? 0);
     const label = t(`meters.${M.key}`);
@@ -995,6 +996,9 @@ async function animateSeason(token, o){
   const days = o.trace.moisture_pct.length, frames = 24;
   const bar = $('grow-bar');
   bar.hidden = false;
+  // On phones the field sits above the decisions: bring it into view so the season can be watched.
+  const box = $('stage').getBoundingClientRect();
+  if(box.top < 0 || box.top > window.innerHeight * 0.6) $('stage').scrollIntoView({ behavior:'smooth', block:'start' });
   renderPlants(); setView(false);
   setFieldState('growing', weatherFor(s, o), 0.3);
   for(let k=1; k<=frames; k++){
@@ -1049,11 +1053,11 @@ function diffChips(diff, compact){
   const items = [
     ['yield_pct', 'whatif.yield', v=>`${signed(v)} ${t('units.pp')}`, 1],
     ['profit', 'whatif.profit', v=>(v>0?'+':v<0?'−':'±')+fmt$(Math.abs(v)).replace('−',''), 1],
-    ['pumped_mm', 'whatif.pumped', v=>`${signed(v)} mm`, -1],
-    ['useful_mm', 'whatif.useful', v=>`${signed(v)} mm`, 1],
+    ['pumped_mm', 'whatif.pumped', v=>`${signed(v)} ${U('mm')}`, -1],
+    ['useful_mm', 'whatif.useful', v=>`${signed(v)} ${U('mm')}`, 1],
     ['fertility_after', 'whatif.fertility', v=>signed(v), 1],
     ['erosion_event', 'whatif.erosion', v=>signed(v, dec1), -1],
-    ['n_leached', 'whatif.leached', v=>`${signed(v, dec1)} kg`, -1],
+    ['n_leached', 'whatif.leached', v=>`${signed(v, dec1)} ${U('kg')}`, -1],
   ];
   return `<div class="deltas">${items.filter(([k])=>!compact || Math.abs(diff[k])>=0.5).map(([k,l,f,dir])=>{
     const v = diff[k]; const good = v===0 ? null : v*dir>0;
@@ -1079,7 +1083,7 @@ function renderReport(){
       <p class="note-sm">${esc(periodLabel(s))} · ${statusBadge(res.data)} · ${esc(t('report.modelNote'))}</p>
       <div class="deltas">
         <span class="dchip">${IC.coin} ${esc(t('report.profit'))} <span class="n ${o.economics.profit>=0?'up':'down'}">${o.economics.profit>=0?'+':''}${fmt$(o.economics.profit)}</span></span>
-        ${chip('drop', t('meters.water'), o.water.reserve_after_mm - o.water.reserve_before_mm, true, v=>`${signed(v)} mm`)}
+        ${chip('drop', t('meters.water'), o.water.reserve_after_mm - o.water.reserve_before_mm, true, v=>`${signed(v)} ${U('mm')}`)}
         ${chip('soil', t('meters.fertility'), o.fertility_after - o.fertility_before)}
         ${chip('leaf', t('soil.n'), Math.round(dSoil('n')))}
         ${chip('compost', t('soil.om'), Math.round(dSoil('om')*100)/100, true, v=>signed(v, dec))}
@@ -1159,12 +1163,12 @@ function renderWhatIf(){
   const rows = r ? [
     [t('whatif.yield'), `${num(r.player.yield_pct)}%`, `${num(r.alternative.yield_pct)}%`, r.diff.yield_pct, 1],
     [t('whatif.profit'), fmt$(r.player.profit), fmt$(r.alternative.profit), r.diff.profit, 1],
-    [t('whatif.pumped'), `${num(r.player.pumped_mm)} mm`, `${num(r.alternative.pumped_mm)} mm`, r.diff.pumped_mm, -1],
-    [t('whatif.useful'), `${num(r.player.useful_mm)} mm`, `${num(r.alternative.useful_mm)} mm`, r.diff.useful_mm, 1],
-    [t('whatif.reserve'), `${num(r.player.reserve_after_mm)} mm`, `${num(r.alternative.reserve_after_mm)} mm`, r.diff.reserve_after_mm, 1],
+    [t('whatif.pumped'), `${num(r.player.pumped_mm)} ${U('mm')}`, `${num(r.alternative.pumped_mm)} ${U('mm')}`, r.diff.pumped_mm, -1],
+    [t('whatif.useful'), `${num(r.player.useful_mm)} ${U('mm')}`, `${num(r.alternative.useful_mm)} ${U('mm')}`, r.diff.useful_mm, 1],
+    [t('whatif.reserve'), `${num(r.player.reserve_after_mm)} ${U('mm')}`, `${num(r.alternative.reserve_after_mm)} ${U('mm')}`, r.diff.reserve_after_mm, 1],
     [t('whatif.fertility'), num(r.player.fertility_after), num(r.alternative.fertility_after), r.diff.fertility_after, 1],
     [t('whatif.erosion'), dec1(r.player.erosion_event), dec1(r.alternative.erosion_event), r.diff.erosion_event, -1],
-    [t('whatif.leached'), `${dec1(r.player.n_leached)} kg`, `${dec1(r.alternative.n_leached)} kg`, r.diff.n_leached, -1],
+    [t('whatif.leached'), `${dec1(r.player.n_leached)} ${U('kg')}`, `${dec1(r.alternative.n_leached)} ${U('kg')}`, r.diff.n_leached, -1],
   ] : [];
   const cls = (d, dir) => !d ? '' : d*dir>0 ? 'better' : 'worse';
   $('whatif').innerHTML = `
@@ -1269,9 +1273,9 @@ function renderResult(){
         ${kv(t('result.revenue'), fmt$(m.revenue))}
         ${kv(t('result.finalBudget'), fmt$(m.final_budget))}
         ${kv(t('result.avgYield'), `${num(m.avg_yield)}%`)}
-        ${kv(t('result.pumped'), `${num(m.pumped_mm)} mm`)}
-        ${kv(t('result.useful'), `${num(m.useful_mm)} mm`)}
-        ${kv(t('result.reserveEnd'), `${num(m.reserve_end)} mm`)}
+        ${kv(t('result.pumped'), `${num(m.pumped_mm)} ${U('mm')}`)}
+        ${kv(t('result.useful'), `${num(m.useful_mm)} ${U('mm')}`)}
+        ${kv(t('result.reserveEnd'), `${num(m.reserve_end)} ${U('mm')}`)}
       </div></div>
       <div class="card"><h3>${IC.soil} ${esc(t('result.soil'))}</h3><div class="kv">
         ${kv(t('meters.fertility'), `${num(m.fertility_end)} (${signed(m.fertility_delta)})`, dcls(m.fertility_delta))}
