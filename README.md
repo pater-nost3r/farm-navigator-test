@@ -36,7 +36,11 @@ Open http://127.0.0.1:8000. The same server serves the game and the API; Swagger
 http://127.0.0.1:8000/docs.
 
 The game needs its server: every season is simulated there. Opened as a plain file, the page shows a "no game server"
-screen.
+screen with the request URL.
+
+A page served by a local static server (VS Code Live Server on :5500, Vite on :5173…) calls uvicorn on the same host
+at :8000, so keep `uvicorn app.main:app --port 8000` running. Another API address can be set with
+`<meta name="farm-api-base" content="https://…">` or `window.FARM_API_BASE`, plus `CORS_ORIGINS` on the server.
 
 `.env` is optional (see `.env.example`). NASA POWER and the geocoder need no key, and `NASA_API_KEY` is never sent
 anywhere.

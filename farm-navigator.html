@@ -948,6 +948,20 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
 @media (max-width:560px){ .method.three{grid-template-columns:1fr} .why .pb{min-width:0} }
 
 /* ---------- Layout fixes found in a real browser ---------- */
+/* The hidden attribute must win over display rules like .btn{display:inline-flex} */
+[hidden]{display:none!important}
+.err-url{margin-top:8px;word-break:break-all}
+.err-url:empty{display:none}
+/* Button icons are separate decorative elements, never part of the label text */
+.bi{display:inline-flex;flex:none;line-height:0}
+.bl{min-width:0}
+.btn > [data-ic]{display:inline-flex;flex:none;line-height:0}
+/* Irrigation systems: a list like soil care, so long names (RU "Затопление", "Дождевание") are never cut */
+.method.three{grid-template-columns:1fr}
+.method button{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:center;padding:8px 10px}
+.method button .bi{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--nasa-100);color:var(--nasa-text)}
+.method button .bl b{display:block;font-weight:800;font-size:13.5px}
+.seg button .drops{line-height:0}
 /* .topbar has grid-area:top for the game grid; on grid pages it must stay a normal row */
 .page > .topbar{grid-area:auto}
 /* The NASA header: title and period get the full width, the status badge goes below */
@@ -1001,6 +1015,7 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
     <h1 id="err-title"></h1>
     <p id="err-text"></p>
     <span class="err-code" id="err-code"></span>
+    <p class="msg err-url" id="err-url"></p>
     <div class="boot-actions">
       <button class="btn btn-nasa btn-lg" id="btn-retry" type="button"><span data-ic="refresh"></span><span data-i18n="actions.retry">Try again</span></button>
       <button class="btn btn-lg" id="btn-demo" type="button" hidden><span data-ic="map"></span><span data-i18n="actions.sampleData">Play with demo data</span></button>
@@ -1303,7 +1318,8 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
   "error.server.text": "The game server did not answer. Try again in a moment.",
   "error.server.short": "the server did not answer",
   "error.no-backend.title": "The game server is not running",
-  "error.no-backend.text": "Open the game through its server (uvicorn app.main:app) instead of as a file, or check the deployment.",
+  "error.no-backend.text": "The page could not find the game API. Start the server with “uvicorn app.main:app --port 8000” and open http://127.0.0.1:8000, then press Try again.",
+  "error.url": "Request: {{url}}",
   "error.no-backend.short": "no game server",
   "error.invalid.title": "Unexpected answer",
   "error.invalid.text": "The server returned data the game could not read.",
@@ -1942,7 +1958,8 @@ details.limits ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;line-hei
   "error.server.text": "Игровой сервер не ответил. Попробуйте ещё раз через минуту.",
   "error.server.short": "сервер не ответил",
   "error.no-backend.title": "Игровой сервер не запущен",
-  "error.no-backend.text": "Откройте игру через её сервер (uvicorn app.main:app), а не как файл, или проверьте развёртывание.",
+  "error.no-backend.text": "Страница не нашла API игры. Запустите сервер командой «uvicorn app.main:app --port 8000» и откройте http://127.0.0.1:8000, затем нажмите «Попробовать снова».",
+  "error.url": "Запрос: {{url}}",
   "error.no-backend.short": "нет игрового сервера",
   "error.invalid.title": "Непонятный ответ",
   "error.invalid.text": "Сервер вернул данные, которые игра не смогла прочитать.",

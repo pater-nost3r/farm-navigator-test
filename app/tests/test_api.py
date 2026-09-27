@@ -132,3 +132,9 @@ def test_geocode_endpoint(api):
     app.dependency_overrides[get_geocoding_service] = lambda: Fake()
     r = client.get("/api/geocode", params={"q": "Almaty"})
     assert r.status_code == 200 and r.json()["results"] == []
+
+
+def test_cors_allows_the_live_server_page(api):
+    client, _ = api()
+    r = client.get("/api/health", headers={"Origin": "http://127.0.0.1:5500"})
+    assert r.headers["access-control-allow-origin"] == "http://127.0.0.1:5500"

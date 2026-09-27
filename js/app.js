@@ -135,9 +135,17 @@ Object.assign(IC, {
   flood: P('<path d="M3 14c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0 3 1.2 4.5 0M3 18.5c1.5-1.2 3-1.2 4.5 0s3 1.2 4.5 0 3-1.2 4.5 0 3 1.2 4.5 0"/><path d="M12 3.5v6M9.5 7L12 9.5 14.5 7"/>'),
   sprinkler: P('<path d="M12 21v-7"/><path d="M9 14h6"/><path d="M12 10.5c-3-3-6.5-3.5-9-2.5M12 10.5c3-3 6.5-3.5 9-2.5M12 10.5V4"/>'),
   drain: P('<path d="M3 8h18"/><path d="M6 8v5a6 6 0 0012 0V8"/><path d="M12 13v7M9.5 17.5L12 20l2.5-2.5"/>'),
+  back: P('<path d="M19 12H5M11 6l-6 6 6 6"/>'),
   download: P('<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/>'),
 });
 const $ = id => document.getElementById(id);
+/* Button content: the icon is its own decorative element, the label is plain text in its own element,
+   so icons never become part of the button text (and label updates never touch the icon). */
+const BL = (icon, label, after=false) => {
+  const i = icon ? `<span class="bi" aria-hidden="true">${IC[icon]}</span>` : '';
+  const l = `<span class="bl">${esc(label)}</span>`;
+  return after ? l + i : i + l;
+};
 const fmt$ = n => (n<0?'−$':'$') + num(Math.abs(Math.round(n)));
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
 
@@ -479,6 +487,7 @@ function renderError(){
   $('err-title').textContent = t(`error.${kind}.title`);
   $('err-text').textContent = t(`error.${kind}.text`);
   $('err-code').textContent = t('error.code', { kind, status: lastError && lastError.status ? `HTTP ${lastError.status}` : '—' });
+  $('err-url').textContent = lastError && lastError.url ? t('error.url', { url: new URL(lastError.url, location.href).href }) : '';
   // Demo is offered only when our server works but NASA POWER does not (the game needs the server either way).
   $('btn-demo').hidden = !(bootStage==='archive' && ['nasa','timeout'].includes(kind));
   $('btn-err-location').hidden = bootStage!=='archive';
@@ -632,7 +641,7 @@ function renderLevels(){
         <div><div class="mini-stars" role="img" aria-label="${esc(t('levels.starsAria', { n: best ? best.stars : 0 }))}">${starsSvg(best ? best.stars : 0)}</div>
           ${best ? `<span class="best">${esc(t(best.passed ? 'levels.best' : 'levels.notPassed', { score:best.score }))}</span>` : ''}</div>
         <button class="btn ${unlocked && fit.years.length?'btn-primary':''}" type="button" data-level="${level.id}" ${unlocked && fit.years.length?'':'disabled'}>
-          ${unlocked ? (best ? IC.refresh + esc(t('actions.replay')) : IC.play + esc(t('actions.play'))) : IC.lock + esc(t('levels.locked'))}</button>
+          ${unlocked ? (best ? BL('refresh', t('actions.replay')) : BL('play', t('actions.play'))) : BL('lock', t('levels.locked'))}</button>
       </div>
       ${unlocked ? '' : `<p class="best">${esc(t('levels.unlockHint', { n:level.id-1 }))}</p>`}
     </article>`;
@@ -688,8 +697,8 @@ function renderBrief(){
     ${isDemo() ? `<p class="rules">${esc(t('brief.demo'))}</p>` : ''}
     ${brief.error ? `<p class="missing show" role="alert">${esc(brief.error)}</p>` : ''}
     <div class="brief-foot">
-      <button class="btn btn-ghost" type="button" id="brief-cancel">${esc(t('actions.back'))}</button>
-      <button class="btn btn-primary btn-lg" type="button" id="brief-start" data-autofocus ${sel && !brief.busy ? '' : 'disabled'}>${IC.play} ${esc(t(brief.busy ? 'actions.loading' : 'actions.startLevel'))}</button>
+      <button class="btn btn-ghost" type="button" id="brief-cancel">${BL('back', t('actions.back'))}</button>
+      <button class="btn btn-primary btn-lg" type="button" id="brief-start" data-autofocus ${sel && !brief.busy ? '' : 'disabled'}>${BL('play', t(brief.busy ? 'actions.loading' : 'actions.startLevel'))}</button>
     </div>`;
   $('brief-cancel').onclick = ()=>closeOv('ov-level');
   $('brief-start').onclick = ()=>startLevel(brief.levelId, brief.year);
@@ -781,14 +790,15 @@ function renderControls(){
   const methods = R.options(model.irrigation_methods);
   $('irr-method').innerHTML = Object.keys(methods).map(m=>{
     const x = methods[m];
-    return `<button type="button" data-method="${m}" aria-pressed="${decision.method===m}" ${locked?'disabled':''}>${IC[METHOD_UI[m].ic]} ${esc(t(`methods.${m}.name`))}
-      <small>${esc(t('methods.meta', { eff:Math.round(x.efficiency*100), cost:fmt$(x.setup_cost*mult) }))}</small></button>`;
+    return `<button type="button" data-method="${m}" aria-pressed="${decision.method===m}" ${locked?'disabled':''}>
+      <span class="bi" aria-hidden="true">${IC[METHOD_UI[m].ic]}</span>
+      <span class="bl"><b>${esc(t(`methods.${m}.name`))}</b><small>${esc(t('methods.meta', { eff:Math.round(x.efficiency*100), cost:fmt$(x.setup_cost*mult) }))}</small></span></button>`;
   }).join('');
   // 3. water use
   const intens = R.options(model.irrigation_intensity);
   $('irr-seg').innerHTML = Object.keys(intens).map((k,i)=>{
     const dis = locked || (k!=='off' && r.reserve_mm<=0);
-    return `<button type="button" data-intensity="${k}" aria-pressed="${decision.intensity===k}" ${dis?'disabled':''}><span class="drops">${i===0?IC.none:Array.from({ length:i },()=>IC.dropFill).join('')}</span>${esc(t(`intensity.${k}.name`))}</button>`;
+    return `<button type="button" data-intensity="${k}" aria-pressed="${decision.intensity===k}" ${dis?'disabled':''}><span class="drops" aria-hidden="true">${i===0?IC.none:Array.from({ length:i },()=>IC.dropFill).join('')}</span><span class="bl">${esc(t(`intensity.${k}.name`))}</span></button>`;
   }).join('');
   $('reserve-note').textContent = t('decisions.reserve', { mm:num(r.reserve_mm) });
   const it = decision.intensity && intens[decision.intensity];
@@ -818,7 +828,7 @@ function renderControls(){
   $('missing').classList.toggle('show', !locked && msgs.length>0);
   $('btn-confirm').disabled = locked || !check.ok;
   const s = game.season;
-  $('btn-confirm').innerHTML = IC.check + esc(phase==='plan' ? t('actions.confirmGrow', { season: s ? yearLabel(s.year, s.start, s.end) : '' })
+  $('btn-confirm').innerHTML = BL('check', phase==='plan' ? t('actions.confirmGrow', { season: s ? yearLabel(s.year, s.start, s.end) : '' })
     : phase==='done' ? t('actions.levelOver') : t('actions.inProgress'));
 }
 
@@ -1104,13 +1114,13 @@ function renderReport(){
           ${a.drivers.length ? `<p class="note-sm">${esc(t('whatif.drivers', { list:a.drivers.map(d=>t(`factor.${d}`)).join(', ') }))}</p>` : ''}
         </div>`).join('') : `<p class="alt same"><span>${esc(t('whatif.none'))}</span></p>`}
         <p class="note-sm">${esc(t('whatif.noBest'))}</p>
-        <button class="btn" type="button" id="btn-whatif">${IC.compare} ${esc(t('actions.whatIf'))}</button>
+        <button class="btn" type="button" id="btn-whatif">${BL('compare', t('actions.whatIf'))}</button>
       </div>
       <p class="note-sm">${esc(t('report.money', { revenue:fmt$(o.economics.revenue), cost:fmt$(o.economics.cost), max:fmt$(o.economics.cost_max) }))}</p>
       <details class="limits"><summary>${esc(t('report.limits'))}</summary><ul>${(res.limitations||[]).map(l=>`<li>${esc(l)}</li>`).join('')}</ul></details>
       <div class="report-foot">
         <small>${esc(t('report.gridNote'))}</small>
-        <button class="btn btn-primary btn-lg" type="button" id="btn-next" data-autofocus>${esc(btnLabel)} ${IC.arrow}</button>
+        <button class="btn btn-primary btn-lg" type="button" id="btn-next" data-autofocus>${BL('arrow', btnLabel, true)}</button>
       </div>
     </div>`;
   $('btn-next').onclick = afterReport;
@@ -1191,7 +1201,7 @@ function renderWhatIf(){
     </table></div>
     ${r.drivers.length ? `<p class="note-sm">${esc(t('whatif.drivers', { list:r.drivers.map(d=>`${t(`factor.${d}`)} (${signed(r.factor_delta_pp[d], dec1)} ${t('units.pp')})`).join(', ') }))}</p>` : ''}` : ''}
     <p class="note-sm">${esc(t('whatif.note'))}</p>
-    <div class="brief-foot"><button class="btn btn-primary" type="button" id="wi-close" data-autofocus>${esc(t('actions.backToReport'))}</button></div>`;
+    <div class="brief-foot"><button class="btn btn-primary" type="button" id="wi-close" data-autofocus>${BL('back', t('actions.backToReport'))}</button></div>`;
   $('wi-field').onchange = e=>{ w.field = e.target.value; w.value = otherValues(w.field, w.base)[0]; runWhatIf(); };
   $('wi-value').onchange = e=>{ w.value = e.target.value; runWhatIf(); };
   $('wi-close').onclick = ()=>closeOv('ov-whatif');
@@ -1214,7 +1224,7 @@ function renderBanner(){
   const text = passed ? t('banner.win.text') : t(`banner.fail.${ev.fail_reason}`);
   $('banner-card').innerHTML = `<div class="big-ic" style="background:${passed?'#C9971B':'#8E2A1F'}">${passed?IC.basket:IC.x}</div>
     <h2>${esc(t(passed ? 'banner.win.title' : 'banner.fail.title'))}</h2><p>${esc(text)}</p>
-    <button class="btn ${passed?'btn-primary':''} btn-lg" type="button" id="btn-final">${IC.trophy} ${esc(t('actions.seeResult'))}</button>`;
+    <button class="btn ${passed?'btn-primary':''} btn-lg" type="button" id="btn-final">${BL('trophy', t('actions.seeResult'))}</button>`;
   $('btn-final').onclick = ()=>{ $('banner').classList.remove('show'); showResult(); };
 }
 function showResult(){ renderResult(); show('final'); scrollTop(); }
@@ -1297,11 +1307,11 @@ function renderResult(){
         <details class="limits"><summary>${esc(t('report.limits'))}</summary><ul>${model.limitations.map(l=>`<li>${esc(l)}</li>`).join('')}</ul></details></div>
     </div>
     <div class="final-actions">
-      ${ev.passed && nextLevel ? `<button class="btn btn-primary btn-lg" type="button" id="res-next">${IC.play} ${esc(t('actions.nextLevel', { n:nextLevel.id }))}</button>` : ''}
-      <button class="btn btn-lg${ev.passed?'':' btn-primary'}" type="button" id="res-retry">${IC.refresh} ${esc(t('actions.replayLevel'))}</button>
-      <button class="btn btn-lg" type="button" id="res-levels">${IC.grid} ${esc(t('actions.levels'))}</button>
-      <button class="btn btn-lg" type="button" id="res-export">${IC.download} ${esc(t('actions.export'))}</button>
-      ${R.farmReport(progress, model.levels).rows.some(r=>r.best) ? `<button class="btn btn-lg btn-nasa" type="button" id="res-farm">${IC.trophy} ${esc(t('farm.open'))}</button>` : ''}
+      ${ev.passed && nextLevel ? `<button class="btn btn-primary btn-lg" type="button" id="res-next">${BL('play', t('actions.nextLevel', { n:nextLevel.id }))}</button>` : ''}
+      <button class="btn btn-lg${ev.passed?'':' btn-primary'}" type="button" id="res-retry">${BL('refresh', t('actions.replayLevel'))}</button>
+      <button class="btn btn-lg" type="button" id="res-levels">${BL('grid', t('actions.levels'))}</button>
+      <button class="btn btn-lg" type="button" id="res-export">${BL('download', t('actions.export'))}</button>
+      ${R.farmReport(progress, model.levels).rows.some(r=>r.best) ? `<button class="btn btn-lg btn-nasa" type="button" id="res-farm">${BL('trophy', t('farm.open'))}</button>` : ''}
     </div>
     <p class="disclaimer">${esc(model.disclaimer)}</p>`;
   if($('res-next')) $('res-next').onclick = ()=>{ showLevels(); openBrief(nextLevel.id); };
@@ -1351,9 +1361,9 @@ function renderFarm(){
     <div class="card" style="padding:18px;margin-top:18px"><h3>${IC.satellite} ${esc(t('final.lessons'))}</h3>
       <ul class="lessons">${[1,2,3,4,5].map(k=>`<li><span class="lic">${IC.check}</span><span>${esc(t(`farm.lesson.${k}`))}</span></li>`).join('')}</ul></div>
     <div class="final-actions">
-      <button class="btn btn-primary btn-lg" type="button" id="farm-levels">${IC.grid} ${esc(t('actions.levels'))}</button>
-      <button class="btn btn-lg" type="button" id="farm-export">${IC.download} ${esc(t('actions.export'))}</button>
-      <button class="btn btn-lg btn-ghost" type="button" id="farm-reset">${IC.refresh} ${esc(t('farm.reset'))}</button>
+      <button class="btn btn-primary btn-lg" type="button" id="farm-levels">${BL('grid', t('actions.levels'))}</button>
+      <button class="btn btn-lg" type="button" id="farm-export">${BL('download', t('actions.export'))}</button>
+      <button class="btn btn-lg btn-ghost" type="button" id="farm-reset">${BL('refresh', t('farm.reset'))}</button>
     </div>
     <p class="disclaimer">${esc(model.disclaimer)}</p>`;
   $('farm-levels').onclick = showLevels;
@@ -1402,9 +1412,9 @@ function renderTut(){
     <h2 id="tut-title">${esc(t(`tut.${T.id}.title`))}</h2><p>${esc(t(`tut.${T.id}.body`))}</p>
     <div class="tut-mini">${T.chips().map(c=>`<span>${esc(c)}</span>`).join('')}</div>
     <div class="tut-nav">
-      <button class="btn btn-ghost" type="button" id="tut-skip">${tutStep===0 ? esc(t('actions.skip')) : IC.arrow.replace('<path d="M5 12h14M13 6l6 6-6 6"/>','<path d="M19 12H5M11 6l-6 6 6 6"/>')+esc(t('actions.back'))}</button>
+      <button class="btn btn-ghost" type="button" id="tut-skip">${tutStep===0 ? BL(null, t('actions.skip')) : BL('back', t('actions.back'))}</button>
       <div class="dots">${TUT.map((_,k)=>`<i class="${k===tutStep?'on':''}"></i>`).join('')}</div>
-      <button class="btn btn-primary" type="button" id="tut-next">${esc(last ? t('actions.startFarming') : t('actions.next'))} ${IC.arrow}</button>
+      <button class="btn btn-primary" type="button" id="tut-next">${BL('arrow', last ? t('actions.startFarming') : t('actions.next'), true)}</button>
     </div>`;
   $('tut-skip').onclick = ()=>{ if(tutStep===0) closeOv('ov-tut'); else { tutStep--; renderTut(); $('tut-skip').focus(); } };
   $('tut-next').onclick = ()=>{ if(last) closeOv('ov-tut'); else { tutStep++; renderTut(); $('tut-next').focus(); } };

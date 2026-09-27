@@ -67,6 +67,33 @@ test('offline and no-backend are detected before any request', async () => {
   await assert.rejects(file.c.getConfig(), (e) => e.kind === 'no-backend');
 });
 
+test('a page on a static dev server finds the API among the candidates', async () => {
+  const LOCAL = 'http://127.0.0.1:8000';
+  const notFound = () => new Response('Not found', { status: 404 });
+  const refused = () => { throw new TypeError('connection refused'); };
+  const make = (handler) => {
+    const calls = [];
+    const c = D.createClient({ apiBase: [LOCAL, ''], sleep: noSleep, isOnline: () => true,
+      fetch: async (url) => { calls.push(url); return handler(url); } });
+    return { c, calls };
+  };
+  // Live Server + uvicorn on :8000: the first candidate answers, the static server is never asked.
+  const live = make((url) => (url.startsWith(LOCAL) ? json({ ok: 1 }) : notFound()));
+  assert.deepEqual(await live.c.getConfig(), { ok: 1 });
+  assert.equal(live.c.apiBase, LOCAL);
+  // uvicorn serves the page on another port: :8000 is refused, the page's origin has the API.
+  const own = make((url) => (url.startsWith(LOCAL) ? refused() : json({ ok: 2 })));
+  assert.deepEqual(await own.c.getConfig(), { ok: 2 });
+  assert.equal(own.c.apiBase, '');
+  // Once found, the API stays put: a later network error is reported, not hidden by switching.
+  own.calls.length = 0;
+  await own.c.getConfig();
+  assert.deepEqual(own.calls, ['/api/game/config']);
+  // Nothing runs: no-backend with the preferred address.
+  const none = make((url) => (url.startsWith(LOCAL) ? refused() : notFound()));
+  await assert.rejects(none.c.getConfig(), (e) => e.kind === 'no-backend' && e.url === `${LOCAL}/api/game/config`);
+});
+
 test('a hanging request times out', async () => {
   const hang = D.createClient({ apiBase: '', sleep: noSleep, isOnline: () => true,
     fetch: (url, init) => new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(Object.assign(new Error('aborted'), { name: 'AbortError' })))) });
