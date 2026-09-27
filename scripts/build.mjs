@@ -1,7 +1,7 @@
-// Production build for Vercel (static site). No bundler needed: the game is plain HTML + JS.
+// Static bundle of the game (no bundler needed: plain HTML + JS). Also checks script references and translations.
 // dist/index.html  ← farm-navigator.html
 // dist/js/*.js     ← js/*.js
-// The API (api/index.py → FastAPI) is deployed by Vercel as a Python function, not copied here.
+// Vercel does not use dist/: it deploys app/main.py (FastAPI), which serves the page and the API itself.
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';

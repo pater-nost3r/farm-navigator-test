@@ -58,8 +58,8 @@ async def health() -> HealthResponse:
     return HealthResponse()
 
 
-# Local development: serve the game from the same origin as the API
-# (on Vercel the static files are served by the CDN instead).
+# The game is served from the same origin as the API, locally and on Vercel
+# (Vercel promotes the /js mount to its CDN).
 if FRONTEND_PAGE.exists():
 
     @app.get("/", include_in_schema=False)

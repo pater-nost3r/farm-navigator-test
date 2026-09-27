@@ -77,7 +77,6 @@ app/services/engine.py     authoritative game engine: daily water balance, soil,
 app/api/nasa.py            GET /api/nasa/archive
 app/api/game.py            GET /api/game/config, POST /api/game/start | turn | what-if
 app/api/geocode.py         GET /api/geocode (city → coordinates, Open-Meteo)
-api/index.py               Vercel serverless entry (imports app.main:app)
 docs/MODEL.md              the game model, every formula, threshold and assumption
 ```
 
@@ -201,10 +200,11 @@ It never calls one strategy best for every goal. The player can also try any sin
 
 ## Deploy to Vercel
 
-`vercel.json` works as follows:
-- It builds the static game with `node scripts/build.mjs` into `dist/`.
-- It deploys `api/index.py` (FastAPI) as a Python function, including `app/**` with `game_model.json`.
-- It rewrites `/api/*` to that function.
+Vercel deploys the project as a zero-configuration FastAPI app:
+- `vercel.json` selects the `fastapi` framework; `pyproject.toml` sets the entrypoint `app.main:app`.
+- The whole app becomes one function: it serves the API, the game page at `/` and `js/` (promoted to the CDN).
+- Dependencies come from `requirements.txt` (the same list is in `pyproject.toml`).
+- `maxDuration` of the function is 30 s (`functions` → `app/main.py`).
 
 `.vercelignore` keeps `.env`, virtual environments and tests out of the upload.
 

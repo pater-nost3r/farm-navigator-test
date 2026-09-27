@@ -3,6 +3,18 @@ name = "farm-navigator"
 version = "2.0.0"
 description = "Educational farming game built on NASA POWER data (NASA Space Apps Challenge)"
 requires-python = ">=3.12"
+# Same as requirements.txt: Vercel installs the FastAPI app from either file.
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic>=2.7",
+  "httpx>=0.27",
+  "python-dotenv>=1.0",
+]
+
+# Vercel deploys the whole FastAPI app (API + game page) as one function.
+[tool.vercel]
+entrypoint = "app.main:app"
 
 [tool.pytest.ini_options]
 testpaths = ["app/tests"]
@@ -23,7 +35,7 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.12"
-files = ["app", "api"]
+files = ["app"]
 ignore_missing_imports = true
 check_untyped_defs = true
 warn_unused_ignores = true
